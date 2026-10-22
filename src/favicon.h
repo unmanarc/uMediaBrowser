@@ -1,5 +1,4 @@
-#ifndef FAVICON_H
-#define FAVICON_H
+#pragma once
 
 static unsigned char favicon2_ico[] = {
   0x00
@@ -7,4 +6,4 @@ static unsigned char favicon2_ico[] = {
 static unsigned int favicon2_ico_len = 1;
 
 
-#endif // FAVICON_H
+

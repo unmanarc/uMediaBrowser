@@ -1,5 +1,4 @@
-#ifndef WEBCLIENTHANDLER_H
-#define WEBCLIENTHANDLER_H
+#pragma once
 
 #include <Mantids30/Memory/b_chunks.h>
 #include <Mantids30/Memory/b_mem.h>
@@ -80,4 +79,3 @@ private:
 
 
 
-#endif // WEBCLIENTHANDLER_H
