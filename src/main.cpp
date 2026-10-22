@@ -13,6 +13,7 @@
 #include <fstream>
 
 #include "webclienthdlr.h"
+#include "html_errors.h"
 #include "favicon.h"
 #include "config.h"
 
@@ -306,14 +307,7 @@ void USimpleWebServer::_callbackOnInitFailed(void *, const std::shared_ptr<Netwo
 
 void USimpleWebServer::_callbackOnTimeOut(void *, const std::shared_ptr<Network::Sockets::Socket_Stream> &s)
 {
-    s->writeString(
-                    "HTTP/1.1 503 Service Temporarily Unavailable\r\n"
-                    "Content-Type: text/html; charset=UTF-8\r\n"
-                    "Connection: close\r\n"
-                    "\r\n"
-                    "<center><h1>503 Service Temporarily Unavailable</h1></center>\r\n"
-                    "<hr>\r\n"
-                   );
+    s->writeString(HTML_503_RESPONSE);
 }
 
 const webClientParams &USimpleWebServer::getWebClientParameters() const

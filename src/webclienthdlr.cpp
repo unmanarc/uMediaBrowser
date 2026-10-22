@@ -1,4 +1,5 @@
 #include "webclienthdlr.h"
+#include "html_errors.h"
 #include <Mantids30/Program_Logs/loglevels.h>
 #include <Mantids30/Protocol_HTTP/rsp_status.h>
 #include <boost/range/end.hpp>
@@ -303,7 +304,7 @@ Status::Code WebClientHdlr::onHTTPClientContentReceived()
                 clientRequest.basicAuth.password != webClientParameters.pass ||
                 clientRequest.basicAuth.username!= webClientParameters.user)
         {
-            getResponseContentStreamableObject()->writeString("401: Unauthorized.");
+            getResponseContentStreamableObject()->writeString(HTML_401);
             serverResponse.sWWWAuthenticateRealm = "Authentication Required";
             return respond( HTTP::Status::Code::S_401_UNAUTHORIZED, clientRequest.getURI().c_str() );
         }
@@ -418,7 +419,7 @@ Status::Code WebClientHdlr::onHTTPClientContentReceived()
     }
     else
     {
-        getResponseContentStreamableObject()->writeString("<center>404: Not Found.</center>");
+        getResponseContentStreamableObject()->writeString(HTML_404);
     }
 
     if (fileInfo.relativePath.empty())
