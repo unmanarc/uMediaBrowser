@@ -14,7 +14,6 @@
 
 #include "webclienthdlr.h"
 #include "favicon.h"
-#include "jquery.h"
 #include "config.h"
 
 
@@ -32,7 +31,6 @@ using namespace Mantids30::Program;
 class USimpleWebServer : public Mantids30::Program::Application
 {
 public:
-    static std::shared_ptr<Mantids30::Memory::Containers::B_MEM> jquery;
     static std::shared_ptr<Mantids30::Memory::Containers::B_MEM> favicon;
     static time_t staticContentTime;
 
@@ -51,7 +49,6 @@ public:
         globalArguments->setInifiniteWaitAtEnd(true);
 
         favicon = std::make_shared<Mantids30::Memory::Containers::B_MEM>(favicon2_ico,favicon2_ico_len);
-        jquery = std::make_shared<Mantids30::Memory::Containers::B_MEM>(jquery_3_6_0,sizeof(jquery_3_6_0));
         staticContentTime = time(nullptr);
 
         /////////////////////////
@@ -287,15 +284,10 @@ void USimpleWebServer::_callbackOnConnect(void *obj, const std::shared_ptr<Netwo
     Mantids30::Network::Protocol::HTTP::HTTPv1_Server::StaticContentElement faviconElement;
     faviconElement.setData(favicon, staticContentTime);
 
-    Mantids30::Network::Protocol::HTTP::HTTPv1_Server::StaticContentElement jqueryElement;
-    jqueryElement.setData(jquery, staticContentTime);
-
     // Mantids30 resolves in-memory static content without the leading slash.
     // Register both variants to keep the original URL mapping working.
     webHandler->addStaticContent("favicon.ico",faviconElement);
     webHandler->addStaticContent("/favicon.ico",faviconElement);
-    webHandler->addStaticContent(".usws/assets/js/jquery.min.js",jqueryElement);
-    webHandler->addStaticContent("/.usws/assets/js/jquery.min.js",jqueryElement);
 
     char inetAddr[INET6_ADDRSTRLEN];
     s->getRemotePair(inetAddr);
@@ -336,7 +328,6 @@ int main(int argc, char *argv[])
 }
 
 
-std::shared_ptr<Mantids30::Memory::Containers::B_MEM> USimpleWebServer::jquery = nullptr;
 std::shared_ptr<Mantids30::Memory::Containers::B_MEM> USimpleWebServer::favicon = nullptr;
 time_t USimpleWebServer::staticContentTime = 0;
 
