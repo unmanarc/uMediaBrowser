@@ -33,16 +33,16 @@ Group:          Applications/Internet
 %define debug_package %{nil}
 %endif
 
-BuildRequires: libMantids-devel >= 2.8.19
-BuildRequires:  %{cmake} zlib-devel boost-devel gcc-c++
+BuildRequires: libMantids30-devel >= 3.0.0
+BuildRequires:  %{cmake} zlib-devel boost-devel jsoncpp-devel gcc-c++
 %if 0%{?rhel} == 7
 BuildRequires:  openssl11-devel
 %else
 BuildRequires:  openssl-devel
 %endif
 
-Requires: libMantids >= 2.8.19
-Requires: zlib boost-regex
+Requires: libMantids30 >= 3.0.0
+Requires: zlib boost-regex jsoncpp
 %if 0%{?rhel} == 7
 Requires:       openssl11
 %else

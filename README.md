@@ -57,7 +57,7 @@ This program is useful for:
 - Creating Backups (tar.gz) of folders on-the-fly
 - Serving files via HTTP efficiently
 
-It can be built in "portable mode", and introduced as a very lightweight binary  
+It can be built with a small runtime footprint and introduced as a very lightweight binary  
 
 ***
 ## Building/Installing uSimpleWebServer
@@ -66,16 +66,17 @@ It can be built in "portable mode", and introduced as a very lightweight binary
 
 This guide is optimized for centos7 (you can adapt this for your OS), and the generated binary should be compatible with other neewer distributions...
 
-First, as prerequisite, you must have installed libMantids (as static libs, and better if MinSizeRel)
+First, as prerequisite, you must have installed libMantids30 (>= 3.0.0) and its pkg-config files.
 
 and then...
 
 ```
 git clone https://github.com/unmanarc/uSimpleWebServer
 cd uSimpleWebServer
-cmake3 . -DPORTABLE=ON -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INSTALL_PREFIX:PATH=/opt/osslibs -DEXTRAPREFIX:PATH=/opt/osslibs -B../uSimpleWebServer-build
-cd ../uSimpleWebServer-build
-make -j4 install
+PKG_CONFIG_PATH=/opt/osslibs/share/pkgconfig:$PKG_CONFIG_PATH \
+cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INSTALL_PREFIX:PATH=/opt/osslibs -DEXTRAPREFIX:PATH=/opt/osslibs -B../uSimpleWebServer-build .
+cmake --build ../uSimpleWebServer-build -j4
+cmake --install ../uSimpleWebServer-build
 ```
 
 And if you want to reduce the binary size:
@@ -183,6 +184,6 @@ This program was tested so far in:
 
 ### Overall Pre-requisites:
 
-* libMantids (in static mode)
-* cmake3
-* C++11 Compatible Compiler (like GCC >=5)
+* libMantids30 (>= 3.0.0)
+* cmake >= 3.12
+* C++17 Compatible Compiler (like GCC >= 7)
