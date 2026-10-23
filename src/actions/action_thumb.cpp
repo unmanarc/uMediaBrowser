@@ -3,7 +3,6 @@
 #include <Mantids30/Helpers/appexec.h>
 #include <Mantids30/Helpers/encoders.h>
 
-#include <cstdlib>
 #include <string>
 
 using namespace Mantids30;
@@ -16,11 +15,12 @@ Status::Code WebClientHdlr::action_thumb()
     auto vars = clientRequest.getVarsBySource(HTTP::Source::GET);
     std::string file = vars->getStringValue("file");
 
-    int size = std::atoi(vars->getStringValue("s").c_str());
+    int size = 0;
+    try { size = std::stoi(vars->getStringValue("s")); } catch (...) { size = 0; }
     if (size <= 0)
         size = 128;
-    if (size > 1024)
-        size = 1024;
+    if (size > 512)
+        size = 512;
 
     LocalRequestedFileInfo info;
     if (!resolveExistingPath(file, info) || info.isDirectory)
