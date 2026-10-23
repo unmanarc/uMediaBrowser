@@ -4,6 +4,7 @@
 #include <Mantids30/Program_Logs/loglevels.h>
 #include <Mantids30/Protocol_HTTP/rsp_status.h>
 #include <Mantids30/Helpers/random.h>
+#include <boost/regex.hpp>
 
 #include <stdio.h>
 #include <unistd.h>
@@ -209,19 +210,8 @@ Status::Code WebClientHdlr::onHTTPClientContentReceived()
 
 bool WebClientHdlr::containOnlyAllowedChars(const std::string & str)
 {
-    for (ssize_t i=0;i<str.size();i++)
-    {
-        if ( !(            (str.at(i)>='a' && str.at(i)<='z')
-                           ||     (str.at(i)>='A' && str.at(i)<='Z')
-                           ||     (str.at(i)>='0' && str.at(i)<='9')
-                           ||      str.at(i)=='.' ||  str.at(i)==',' ||  str.at(i)=='!' ||  str.at(i)=='@' ||  str.at(i)=='_' ||  str.at(i)=='-' ||  str.at(i)=='+' ||  str.at(i)==':' ||  str.at(i)=='=' ||  str.at(i)=='/'
-                           )
-             )
-        {
-            return false;
-        }
-    }
-    return true;
+    static const boost::regex allowed("^[a-zA-Z0-9.,!@_\-+=:/]*$");
+    return boost::regex_match(str, allowed);
 }
 
 std::string WebClientHdlr::getFancySize(size_t value)

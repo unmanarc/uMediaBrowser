@@ -2,8 +2,9 @@
 #include <Mantids30/Protocol_HTTP/rsp_status.h>
 #include <Mantids30/Helpers/appexec.h>
 
-#include <cstdlib>
-#include <sstream>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
+
 #include <string>
 #include <vector>
 
@@ -60,23 +61,26 @@ Status::Code WebClientHdlr::action_detail()
     std::string idOut;
     if (runCapture("/usr/bin/identify", {"-format", "%m %w %h", info.fullPath}, idOut))
     {
-        std::istringstream iss(idOut);
-        std::string fmt, w, h;
-        iss >> fmt >> w >> h;
-        if (!fmt.empty())
+        std::vector<std::string> fields;
+        boost::split(fields, idOut, boost::is_any_of(" \t\r\n"), boost::token_compress_on);
+        if (fields.size() >= 3)
         {
-            if (fmt == "JPEG") data["mime"] = "image/jpeg";
-            else if (fmt == "PNG") data["mime"] = "image/png";
-            else if (fmt == "GIF") data["mime"] = "image/gif";
-            else if (fmt == "WEBP") data["mime"] = "image/webp";
-            else if (fmt == "BMP") data["mime"] = "image/bmp";
-            else if (fmt == "TIFF") data["mime"] = "image/tiff";
-            else data["mime"] = "image/" + fmt;
+            const std::string &fmt = fields[0];
+            const std::string &w = fields[1];
+            const std::string &h = fields[2];
+            if (!fmt.empty())
+            {
+                if (fmt == "JPEG") data["mime"] = "image/jpeg";
+                else if (fmt == "PNG") data["mime"] = "image/png";
+                else if (fmt == "GIF") data["mime"] = "image/gif";
+                else if (fmt == "WEBP") data["mime"] = "image/webp";
+                else if (fmt == "BMP") data["mime"] = "image/bmp";
+                else if (fmt == "TIFF") data["mime"] = "image/tiff";
+                else data["mime"] = "image/" + fmt;
+            }
+            try { data["width"] = std::stoi(w); } catch (...) { }
+            try { data["height"] = std::stoi(h); } catch (...) { }
         }
-        if (!w.empty())
-            data["width"] = std::atoi(w.c_str());
-        if (!h.empty())
-            data["height"] = std::atoi(h.c_str());
     }
 
     // Relevant EXIF tags via exiftool (optional; empty if unavailable).

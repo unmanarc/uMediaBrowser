@@ -4,6 +4,8 @@
 #include <Mantids30/Protocol_HTTP/rsp_status.h>
 #include <Mantids30/Memory/b_mmap.h>
 
+#include <boost/algorithm/string/replace.hpp>
+
 #include <string>
 
 using namespace Mantids30;
@@ -37,16 +39,11 @@ Status::Code WebClientHdlr::action_download()
 
     if (asAttachment)
     {
-        std::string name = ActionCommon::baseName(info.relativePath);
+        std::string clean = ActionCommon::baseName(info.relativePath);
         // Sanitize against header injection.
-        std::string clean;
-        for (char c : name)
-        {
-            if (c == '"' || c == '\r' || c == '\n')
-                clean += '_';
-            else
-                clean += c;
-        }
+        boost::replace_all(clean, "\"", "_");
+        boost::replace_all(clean, "\r", "_");
+        boost::replace_all(clean, "\n", "_");
         serverResponse.headers.replace("Content-Disposition", "attachment; filename=\"" + clean + "\"");
     }
 
