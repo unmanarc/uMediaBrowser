@@ -111,6 +111,7 @@ i.ic-close{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 i.ic-folder{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23f6c945' d='M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z'/%3E%3C/svg%3E");}
 i.ic-file{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%2390a4b7' d='M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6H6zm7 1.5L18 8.5H13V3.5z'/%3E%3C/svg%3E");}
 i.ic-image{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%237fb2ff' d='M21 5v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2zM8.5 9a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM7 14l2-2 2 2 3-4 3 5-4 5-6-6z'/%3E%3C/svg%3E");}
+i.ic-album{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23e0e6ed' d='M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5zm3 1.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM5.5 17.5l3.5-4.5 3 4 2.5-3 4 3.5v1.5h-13v-1.5z'/%3E%3C/svg%3E");}
 
 /* ----- tree (B) ----- */
 #zoneB h3{margin:2px 12px; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--fg-dim);}
@@ -133,19 +134,20 @@ i.ic-image{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   display:flex; flex-direction:column; align-items:center; text-align:center;
   padding:10px 8px; gap:6px; background:transparent; color:var(--fg);
 }
-#filesGrid.view-grid .item{position:relative; width:max-content; max-width:200px; height:auto;}
+#filesGrid.view-grid .item{position:relative; width:max-content; max-width:none; height:auto;}
 #filesGrid.view-list .item{
-  flex-direction:row; text-align:left; padding:6px 10px; height:var(--item-h);
+  flex-direction:row; text-align:left; padding:6px 10px;
+  min-height:var(--item-h); height:auto;
   gap:10px; border-bottom:1px solid var(--border); border-radius:0;
 }
 .item:hover{background:#161d26;}
 .item.selected{background:#1e3a5f; border-color:var(--accent);}
 .item .thumb{display:flex; align-items:center; justify-content:center; border-radius:6px; flex:none;}
 .item .thumb img{display:block;}
-/* list view thumbnails = small fixed square */
-#filesGrid.view-list .item .thumb{width:48px; height:48px; overflow:hidden;}
+/* list view thumbnails = square sized by the selected icon size */
+#filesGrid.view-list .item .thumb{width:var(--thumb-h); height:var(--thumb-h); overflow:hidden;}
 #filesGrid.view-list .item .thumb img{width:100%; height:100%; object-fit:cover;}
-#filesGrid.view-list .item .thumb i.ic{width:40px; height:40px;}
+#filesGrid.view-list .item .thumb i.ic{width:calc(var(--thumb-h) - 8px); height:calc(var(--thumb-h) - 8px);}
 /* icon view thumbnails = fixed height, natural aspect-ratio width */
 #filesGrid.view-grid .item .thumb{height:var(--thumb-h); min-width:var(--thumb-h);}
 #filesGrid.view-grid .item .thumb img{height:var(--thumb-h); width:auto; max-width:none;}
@@ -155,17 +157,6 @@ i.ic-image{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
   word-break:break-all; font-size:12.5px;
 }
-/* icon (grid) view: directories and non-image files always show their name
-   below the thumbnail. In a "pure" directory (only folders + images), image
-   files hide their name and reveal it as a top-centered overlay on hover;
-   in a "mixed" directory, image files keep their name below like any file. */
-#filesGrid.view-grid:not(.mixed) .item.is-file .name{
-  position:absolute; top:0; left:0; right:0; margin:0;
-  text-align:center; padding:3px 6px; width:auto;
-  background:rgba(14,17,22,.85); border-radius:6px 6px 0 0;
-  opacity:0; pointer-events:none; transition:opacity .12s;
-}
-#filesGrid.view-grid:not(.mixed) .item.is-file:hover .name{opacity:1;}
 #filesGrid.view-list .item .name{font-size:inherit;-webkit-line-clamp:1;}
 .item .meta{font-size:11px; color:var(--fg-dim); white-space:nowrap;}
 #filesGrid.view-list .item .meta{margin-left:auto; display:flex; gap:16px;}
@@ -194,6 +185,48 @@ i.ic-image{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 .dialog input[type=text]{width:100%; background:var(--bg); color:var(--fg); border:1px solid var(--border); border-radius:6px; padding:8px 10px; font:inherit; margin-bottom:12px;}
 .dialog .actions{display:flex; justify-content:flex-end; gap:8px;}
 
+/* album (full-screen media layer) */
+#albumLayer{
+  position:fixed; inset:0; z-index:2500; background:#000;
+  display:none; align-items:center; justify-content:center;
+}
+#albumLayer.open{display:flex;}
+#albumMedia{
+  display:flex; align-items:center; justify-content:center;
+  width:100%; height:100%; padding:64px 16px 16px;
+}
+#albumImg, #albumVideo{max-width:100%; max-height:100%; object-fit:contain; display:none;}
+#albumImg.show, #albumVideo.show{display:block;}
+/* real click targets: half of the screen each; the visible buttons are only decorative */
+.album-hitzone{position:absolute; top:0; bottom:0; width:50%; z-index:10;}
+.album-hitzone.left{left:0;}
+.album-hitzone.right{right:0;}
+.album-nav{
+  position:absolute; top:50%; transform:translateY(-50%);
+  z-index:20; pointer-events:none; border:0; background:transparent; cursor:pointer;
+  font-size:64px; line-height:1; color:rgba(255,255,255,.35); font-family:Georgia, serif;
+  padding:0 22px; user-select:none;
+}
+.album-hitzone:hover + .album-nav, .album-nav:hover{color:rgba(255,255,255,.85);}
+.album-nav.left{left:0;}
+.album-nav.right{right:0;}
+.album-close{
+  position:absolute; top:10px; right:10px; z-index:31;
+  background:rgba(255,255,255,.08); border-color:transparent; color:#fff;
+}
+.album-close:hover{background:rgba(255,255,255,.2);}
+#albumFooter{
+  position:absolute; left:0; right:0; top:0; z-index:30;
+  display:flex; align-items:center; gap:12px; padding:10px 56px 10px 16px;
+  background:rgba(20,24,30,.82); backdrop-filter:blur(6px);
+  font-size:13px; color:#cfd8e3;
+}
+#albumName{font-weight:600; color:#fff; word-break:break-all; max-width:28%;}
+#albumPos{color:#8b98a8; white-space:nowrap;}
+#albumExif{margin-left:auto; text-align:right; color:#8b98a8; font-size:12px; word-break:break-word; max-width:50%;}
+#albumExif .chip{display:inline-block; margin-left:10px; white-space:nowrap;}
+#albumExif .chip b{color:#cfd8e3; font-weight:600;}
+
 /* toast */
 #toast{position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:10px 16px; z-index:3000; display:none; box-shadow:0 6px 20px rgba(0,0,0,.5);}
 </style>
@@ -204,8 +237,6 @@ i.ic-image{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   <header id="zoneA">
     <span class="brand">uSW3</span>
     <span style="flex:1"></span>
-    <button class="btn icon" id="btnGrid" title="Grid view"><i class="ic ic-grid"></i></button>
-    <button class="btn icon" id="btnList" title="List view"><i class="ic ic-list"></i></button>
     <button class="btn icon" id="btnFullscreen" title="Fullscreen"><i class="ic ic-fullscreen"></i></button>
   </header>
 
@@ -239,6 +270,9 @@ i.ic-image{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 
   <!-- F: status bar -->
   <footer id="zoneF">
+    <button class="btn icon" id="btnGrid" title="Grid view"><i class="ic ic-grid"></i></button>
+    <button class="btn icon" id="btnList" title="List view"><i class="ic ic-list"></i></button>
+    <button class="btn icon" id="btnAlbum" title="Album view"><i class="ic ic-album"></i></button>
     <select id="sizeSelect" class="sel" title="Icon size">
       <option value="48">48 px</option>
       <option value="72" selected>72 px</option>
@@ -248,7 +282,6 @@ i.ic-image{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       <option value="256">256 px</option>
       <option value="384">384 px</option>
       <option value="512">512 px</option>
-      <option value="1024">1024 px</option>
     </select>
     <select id="sortSelect" class="sel" title="Sort">
       <option value="name:asc" selected>Name</option>
@@ -264,6 +297,25 @@ i.ic-image{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 
 <div id="ctxMenu"></div>
 <div id="overlay"><div class="dialog" id="dialog"></div></div>
+
+<!-- Album (full-screen media) layer -->
+<div id="albumLayer">
+  <a id="albumLinkPrev" class="album-hitzone left" href="#" title="Previous"></a>
+  <a id="albumLinkNext" class="album-hitzone right" href="#" title="Next"></a>
+  <button id="albumBtnPrev" class="album-nav left" title="Previous">&#8249;</button>
+  <button id="albumBtnNext" class="album-nav right" title="Next">&#8250;</button>
+  <button class="btn icon album-close" id="btnAlbumClose" title="Close album"><i class="ic ic-close"></i></button>
+  <div id="albumMedia">
+    <img id="albumImg" alt="">
+    <video id="albumVideo" controls playsinline preload="metadata"></video>
+  </div>
+  <header id="albumFooter">
+    <span id="albumName"></span>
+    <span id="albumPos"></span>
+    <span id="albumExif"></span>
+  </header>
+</div>
+
 <div id="toast"></div>
 <input type="file" id="fileInput" multiple style="position:absolute;left:-9999px;top:0;width:1px;height:1px;opacity:0;">
 <script>
@@ -312,9 +364,175 @@ var treeCache = {};   // path -> nodes[]
 var expanded = {};    // path -> true
 var thumbCache = {};   // "path@size" -> data: URI
 var thumbPending = {}; // "path@size" -> true while a thumb fetch is in-flight
-var thumbQueue = [];   // pending "path@size" keys processed sequentially
+var thumbQueue = [];   // pending "path@size" keys shared by the workers
 var thumbQueued = {};  // "path@size" -> true while queued
-var thumbWorkerRunning = false;
+var thumbWorkersRunning = 0;
+var THUMB_CONCURRENCY = 4;  // max simultaneous thumb fetches (one per worker)
+
+// ---------------- ALBUM (full-screen media) ----------------
+var albumIdx = -1;      // index into albumList() while the album is open
+var albumListCache = [];
+var albumExifCache = {}; // full path -> chip html (already rendered)
+
+function isVideo(name){
+  return /\.(mp4|webm|ogv|ogg|mov|m4v)$/i.test(name);
+}
+function isMedia(it){
+  return it.type === 'file' && (isImage(it.name) || isVideo(it.name));
+}
+// Images + videos only (mixed folders: nothing else), respecting filter + sort.
+function albumList(){
+  if (!albumListCache.length){
+    albumListCache = sortItems(state.items.filter(isMedia));
+  }
+  return albumListCache;
+}
+function albumOpen(){ return $('#albumLayer').classList.contains('open'); }
+
+function openAlbum(preferName){
+  var list = albumList();
+  if (!list.length){ toast('No images or videos here'); return; }
+  albumIdx = 0;
+  if (preferName){
+    var i = list.findIndex(function(it){ return it.name === preferName; });
+    if (i >= 0) albumIdx = i;
+  } else if (state.selected.length === 1){
+    var j = list.findIndex(function(it){ return it.name === state.selected[0]; });
+    if (j >= 0) albumIdx = j;
+  }
+  $('#albumLayer').classList.add('open');
+  renderAlbum();
+}
+
+function closeAlbum(){
+  var v = $('#albumVideo');
+  v.pause();
+  v.removeAttribute('src');
+  v.load();
+  $('#albumLayer').classList.remove('open');
+  albumIdx = -1;
+}
+
+function albumNav(dir){
+  var list = albumList();
+  if (!list.length) return;
+  albumIdx = (albumIdx + dir + list.length) % list.length;
+  renderAlbum();
+}
+
+function mediaUrl(name){ return '?act=download&file=' + enc(itemPath(name)); }
+
+function renderAlbum(){
+  var list = albumList();
+  if (!list.length){ closeAlbum(); return; }
+  albumIdx = Math.max(0, Math.min(albumIdx, list.length - 1));
+  var it = list[albumIdx];
+  var img = $('#albumImg'), vid = $('#albumVideo');
+
+  // Stop the previous media.
+  if (vid.classList.contains('show')){ vid.pause(); }
+  vid.removeAttribute('src'); vid.load();
+  img.classList.remove('show');
+  vid.classList.remove('show');
+
+  $('#albumName').textContent = it.name;
+  $('#albumPos').textContent = (albumIdx + 1) + ' / ' + list.length;
+  $('#albumExif').innerHTML = '';
+
+  if (isVideo(it.name)){
+    vid.src = mediaUrl(it.name);
+    vid.classList.add('show');
+    vid.play().catch(function(){});
+    vid.onloadedmetadata = function(){
+      var dur = isFinite(vid.duration) ? Math.round(vid.duration) : 0;
+      if (dur)
+        $('#albumPos').textContent = (albumIdx + 1) + ' / ' + list.length +
+          '   \u00b7   ' + Math.floor(dur/60) + ':' + ('0' + dur%60).slice(-2);
+    };
+  } else {
+    img.src = mediaUrl(it.name);
+    img.classList.add('show');
+    loadAlbumExif(it);
+  }
+  preloadAlbumNext();
+}
+
+// Warm the next image so advancing feels instant.
+function preloadAlbumNext(){
+  var list = albumList();
+  var nxt = list[(albumIdx + 1) % list.length];
+  if (nxt && !isVideo(nxt.name)){
+    var p = new Image();
+    p.src = mediaUrl(nxt.name);
+  }
+}
+
+async function loadAlbumExif(it){
+  var full = itemPath(it.name);
+  if (albumExifCache[full] !== undefined){
+    $('#albumExif').innerHTML = albumExifCache[full];
+    return;
+  }
+  var html = '';
+  try {
+    var r = await api('?act=detail&file=' + enc(full));
+    if (r && r.ok && r.data){
+      var d = r.data, chips = [];
+      if (d.width && d.height)
+        chips.push('<span class="chip"><b>' + d.width + '\u00d7' + d.height + '</b></span>');
+      var e = d.exif || {};
+      if (e.Make || e.Model)
+        chips.push('<span class="chip"><b>' + escapeHtml([e.Make, e.Model].filter(Boolean).join(' ')) + '</b></span>');
+      if (e.LensModel)
+        chips.push('<span class="chip">' + escapeHtml(String(e.LensModel)) + '</span>');
+      var dt = e.DateTimeOriginal || e.CreateDate;
+      if (dt){
+        var m = String(dt).match(/^(\d{4}:\d{2}:\d{2})[ T](\d{2}:\d{2}(?::\d{2})?)?/);
+        var ds = m ? m[1] : String(dt);
+        var ts = m && m[2] ? ' ' + m[2] : '';
+        chips.push('<span class="chip">' + escapeHtml(ds + ts) + '</span>');
+      }
+      if (e.ExposureTime && e.FNumber)
+        chips.push('<span class="chip">' + escapeHtml(String(e.ExposureTime)) + 's \u00b7 f/' + escapeHtml(String(e.FNumber)) + '</span>');
+      else if (e.ExposureTime)
+        chips.push('<span class="chip">' + escapeHtml(String(e.ExposureTime)) + 's</span>');
+      else if (e.FNumber)
+        chips.push('<span class="chip">f/' + escapeHtml(String(e.FNumber)) + '</span>');
+      var iso = e.ISO || e.ISOSpeedRatings;
+      if (iso) chips.push('<span class="chip">ISO ' + escapeHtml(String(iso).split('/')[0]) + '</span>');
+      if (e.FocalLength)
+        chips.push('<span class="chip">' + escapeHtml(String(e.FocalLength).split('/')[0]) + 'mm</span>');
+      if (e.GPSLatitude && e.GPSLongitude){
+        var lat = parseFloat(e.GPSLatitude) * (String(e.GPSLatitudeRef || '').indexOf('S') >= 0 ? -1 : 1);
+        var lon = parseFloat(e.GPSLongitude) * (String(e.GPSLongitudeRef || '').indexOf('W') >= 0 ? -1 : 1);
+        chips.push('<span class="chip">' + lat.toFixed(4) + ', ' + lon.toFixed(4) + '</span>');
+      }
+      html = chips.join('');
+    }
+  } catch(e){}
+  albumExifCache[full] = html;
+  var cur = albumList()[albumIdx];
+  if (albumOpen() && cur && cur.name === it.name)
+    $('#albumExif').innerHTML = html;
+}
+
+function bindAlbum(){
+  // The visible \u2039 \u203a are decorative: the real links cover each screen half.
+  $('#albumLinkPrev').addEventListener('click', function(e){ e.preventDefault(); albumNav(-1); });
+  $('#albumLinkNext').addEventListener('click', function(e){ e.preventDefault(); albumNav(1); });
+  $('#btnAlbumClose').addEventListener('click', closeAlbum);
+  // Click on the empty black area (around the media) closes the album.
+  $('#albumMedia').addEventListener('click', function(e){
+    if (e.target === $('#albumMedia')) closeAlbum();
+  });
+}
+
+document.addEventListener('keydown', function(e){
+  if (!albumOpen()) return;
+  if (e.key === 'Escape') closeAlbum();
+  else if (e.key === 'ArrowLeft') albumNav(-1);
+  else if (e.key === 'ArrowRight') albumNav(1);
+});
 
 function isImage(name){
   return /\.(png|jpe?g|gif|bmp|webp|svg|tiff?|ico)$/i.test(name);
@@ -331,7 +549,7 @@ function applyThumbSize(){
 
 // Resolution we request from the server (1:1 with the displayed size).
 function thumbFetchSize(){
-  return state.view === 'list' ? 48 : state.thumbSize;
+  return state.thumbSize;
 }
 
 function sortItems(items){
@@ -383,6 +601,11 @@ async function loadDir(path){
   renderDetail();
   await revealPath(r.data.path);
   renderTree();
+  // If the album is open, refresh it for the new directory (or close it).
+  if (albumOpen()){
+    if (albumList().length){ albumIdx = 0; renderAlbum(); }
+    else closeAlbum();
+  }
 }
 
 function makeCrumb(path){
@@ -484,11 +707,6 @@ function renderFiles(){
   var items = sortItems(state.items.filter(function(it){ return !q || it.name.toLowerCase().indexOf(q) >= 0; }));
   $('#emptyMsg').style.display = items.length ? 'none' : 'block';
 
-  // "Pure" directory = only folders + images; otherwise it's "mixed" and every
-  // file keeps its name visible below the thumbnail (no hover-only overlay).
-  var mixed = state.items.some(function(it){ return it.type !== 'dir' && !isImage(it.name); });
-  grid.classList.toggle('mixed', mixed);
-
   items.forEach(function(it){
     var el = document.createElement('div');
     el.className = 'item' + (it.type === 'dir' ? ' is-dir' : ' is-file') + (isSelected(it.name) ? ' selected' : '');
@@ -560,11 +778,12 @@ function scheduleThumbs(){
     thumbQueued[key] = true;
     thumbQueue.push(key);
   });
-  if (!thumbWorkerRunning) thumbWorker();
+  while (thumbWorkersRunning < THUMB_CONCURRENCY && thumbQueue.length)
+    thumbWorker();
 }
 
 async function thumbWorker(){
-  thumbWorkerRunning = true;
+  thumbWorkersRunning++;
   while (thumbQueue.length){
     var key = thumbQueue.shift();
     delete thumbQueued[key];
@@ -595,7 +814,9 @@ async function thumbWorker(){
       }
     });
   }
-  thumbWorkerRunning = false;
+  thumbWorkersRunning--;
+  if (thumbQueue.length && thumbWorkersRunning < THUMB_CONCURRENCY)
+    thumbWorker();   // queue still has work and we're below the cap: refill
 }
 
 
@@ -851,6 +1072,7 @@ function bind(){
   $('#btnDelete').onclick = doDeleteSelected;
   $('#btnGrid').onclick = function(){ setView('grid'); };
   $('#btnList').onclick = function(){ setView('list'); };
+  $('#btnAlbum').onclick = function(){ openAlbum(); };
   $('#btnFullscreen').onclick = toggleFullscreen;
   $('#btnGo').onclick = function(){ navigate($('#pathInput').value); };
   $('#pathInput').addEventListener('keydown', function(e){ if (e.key === 'Enter') navigate($('#pathInput').value); });
@@ -885,6 +1107,7 @@ function bind(){
   });
 
   window.addEventListener('hashchange', function(){ loadDir(currentPathFromHash()); });
+  bindAlbum();
 }
 
 (async function init(){
