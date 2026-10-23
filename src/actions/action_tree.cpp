@@ -2,10 +2,10 @@
 #include "action_common.h"
 #include <Mantids30/Protocol_HTTP/rsp_status.h>
 
-#include <dirent.h>
-#include <sys/stat.h>
-
+#include <filesystem>
 #include <string>
+
+namespace fs = std::filesystem;
 
 using namespace Mantids30;
 using namespace Mantids30::Network::Protocol;
@@ -28,56 +28,43 @@ Status::Code WebClientHdlr::action_tree()
 
     Json::Value nodes(Json::arrayValue);
 
-    DIR *dirp = opendir(dirInfo.fullPath.c_str());
-    if (dirp)
+    std::error_code ec;
+    for (auto it = fs::directory_iterator(dirInfo.fullPath, ec);
+         !ec && it != fs::directory_iterator();
+         it.increment(ec))
     {
-        struct dirent *dp;
-        while ((dp = readdir(dirp)) != nullptr)
+        const fs::directory_entry &entry = *it;
+        const std::string name = entry.path().filename().string();
+
+        std::error_code sec;
+        if (!fs::is_directory(entry.path(), sec))
+            continue;
+
+        // Determine whether this subdirectory has any subdirectory of its own.
+        bool hasChildren = false;
+        std::error_code cec;
+        for (auto cit = fs::directory_iterator(entry.path(), cec);
+             !cec && cit != fs::directory_iterator();
+             cit.increment(cec))
         {
-            std::string name = dp->d_name;
-            if (name == "." || name == "..")
-                continue;
-
-            std::string full = dirInfo.fullPath + "/" + name;
-            struct stat st;
-            if (stat(full.c_str(), &st) != 0)
-                continue;
-            if (!S_ISDIR(st.st_mode))
-                continue;
-
-            // Determine whether this subdirectory has any subdirectory of its own.
-            bool hasChildren = false;
-            DIR *sub = opendir(full.c_str());
-            if (sub)
+            std::error_code isec;
+            if (fs::is_directory(cit->path(), isec) && !isec)
             {
-                struct dirent *sdp;
-                while ((sdp = readdir(sub)) != nullptr)
-                {
-                    std::string sname = sdp->d_name;
-                    if (sname == "." || sname == "..")
-                        continue;
-                    struct stat sst;
-                    if (stat((full + "/" + sname).c_str(), &sst) == 0 && S_ISDIR(sst.st_mode))
-                    {
-                        hasChildren = true;
-                        break;
-                    }
-                }
-                closedir(sub);
+                hasChildren = true;
+                break;
             }
-
-            std::string childRel = rel;
-            if (childRel.back() != '/')
-                childRel += '/';
-            childRel += name;
-
-            Json::Value node;
-            node["name"] = name;
-            node["path"] = childRel;
-            node["has_children"] = hasChildren;
-            nodes.append(node);
         }
-        closedir(dirp);
+
+        std::string childRel = rel;
+        if (childRel.back() != '/')
+            childRel += '/';
+        childRel += name;
+
+        Json::Value node;
+        node["name"] = name;
+        node["path"] = childRel;
+        node["has_children"] = hasChildren;
+        nodes.append(node);
     }
 
     Json::Value data;

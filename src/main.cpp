@@ -10,6 +10,7 @@
 
 #include <sys/time.h>
 #include <inttypes.h>
+#include <filesystem>
 #include <fstream>
 
 #include "webclienthdlr.h"
@@ -21,13 +22,8 @@
 using namespace Mantids30;
 using namespace Mantids30::Memory;
 using namespace Mantids30::Program;
+namespace fs = std::filesystem;
 
-
-#ifdef _WIN32
-#include <stdlib.h>
-// TODO: check if _fullpath mitigate transversal.
-#define realpath(N,R) _fullpath((R),(N),_MAX_PATH)
-#endif
 
 class USimpleWebServer : public Mantids30::Program::Application
 {
@@ -53,7 +49,7 @@ public:
         staticContentTime = time(nullptr);
 
         /////////////////////////
-        globalArguments->setVersion( atoi(PROJECT_VER_MAJOR), atoi(PROJECT_VER_MINOR), atoi(PROJECT_VER_PATCH), "a" );
+        globalArguments->setVersion( std::stoi(PROJECT_VER_MAJOR), std::stoi(PROJECT_VER_MINOR), std::stoi(PROJECT_VER_PATCH), "a" );
 
         webClientParameters.softwareVersion = globalArguments->getVersion();
         globalArguments->softwareLicense = "AGPL";
@@ -193,7 +189,7 @@ public:
         }
         if (cafile.size())
         {
-            if (access(cafile.c_str(),R_OK))
+            if (!fs::exists(cafile))
             {
                 log->log0(__func__,Logs::CRITICAL, "X.509 Certificate Authority not found.");
                 exit(-12);
@@ -224,9 +220,10 @@ public:
 
     int _start(int argc, char *argv[], Arguments::GlobalArguments * globalArguments) override
     {
-        auto rp = realpath(webClientParameters.httpDocumentRootDir.c_str(), nullptr);
+        std::error_code ec;
+        const fs::path rp = fs::canonical(webClientParameters.httpDocumentRootDir, ec);
 
-        if (!rp)
+        if (ec)
         {
             log->log0(__func__,Logs::CRITICAL, "Invalid Document Root Directory.");
             exit(-1);
@@ -234,7 +231,7 @@ public:
         multiThreadedAcceptor->startInBackground();
 
         log->log0(__func__,Logs::INFO, "Web Server Loaded @%s:%" PRIu16, listenAddress.c_str(),listenPort);
-        log->log0(__func__,Logs::INFO, "Document root: %s", rp);
+        log->log0(__func__,Logs::INFO, "Document root: %s", rp.c_str());
 
         return 0;
     }

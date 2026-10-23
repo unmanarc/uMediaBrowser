@@ -1,15 +1,17 @@
 #include "../webclienthdlr.h"
 #include <Mantids30/Protocol_HTTP/rsp_status.h>
 
-#include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <stdio.h>
 
 #include <algorithm>
 #include <cctype>
+#include <cstdio>
+#include <filesystem>
 #include <string>
 #include <vector>
+
+namespace fs = std::filesystem;
 
 using namespace Mantids30;
 using namespace Mantids30::Network::Protocol;
@@ -34,11 +36,9 @@ Status::Code WebClientHdlr::action_ls()
     std::string parent = "/";
     if (rel != "/" && !rel.empty())
     {
-        size_t pos = rel.find_last_of('/');
-        if (pos == 0)
-            parent = "/";
-        else if (pos != std::string::npos)
-            parent = rel.substr(0, pos);
+        std::string p = fs::path(rel).parent_path().string();
+        if (!p.empty() && p != ".")
+            parent = p;
     }
 
     Json::Value data;
@@ -53,49 +53,61 @@ Status::Code WebClientHdlr::action_ls()
     flags["version"] = webClientParameters.softwareVersion;
     data["flags"] = flags;
 
-    data["upload_here"] = (access((dirInfo.fullPath + ".dontupload").c_str(), F_OK) != 0);
+    data["upload_here"] = !fs::exists(dirInfo.fullPath + ".dontupload");
 
     Json::Value items(Json::arrayValue);
 
-    DIR *dirp = opendir(dirInfo.fullPath.c_str());
-    if (!dirp)
+    std::error_code ec;
+    if (!fs::is_directory(dirInfo.fullPath, ec) || ec)
     {
         writeJSON(false, "Folder not accessible", data);
         return respond(HTTP::Status::Code::S_403_FORBIDDEN, clientRequest.getURI().c_str());
     }
 
-    struct dirent *dp;
     std::vector<Json::Value> vec;
-    while ((dp = readdir(dirp)) != nullptr)
+    for (auto it = fs::directory_iterator(dirInfo.fullPath, ec);
+         !ec && it != fs::directory_iterator();
+         it.increment(ec))
     {
-        std::string name = dp->d_name;
-        if (name == "." || name == "..")
+        const fs::directory_entry &entry = *it;
+        const std::string name = entry.path().filename().string();
+
+        std::error_code sec;
+        const fs::file_status st = entry.status(sec);
+        if (sec)
             continue;
 
-        std::string full = dirInfo.fullPath + "/" + name;
-        struct stat64 stats;
-        if (stat64(full.c_str(), &stats) != 0)
+        const fs::file_type type = st.type();
+        if (type == fs::file_type::unknown)
             continue;
+        const bool isDir = (type == fs::file_type::directory);
 
-        bool isDir = S_ISDIR(stats.st_mode);
+        // st_uid / st_gid are not exposed by std::filesystem; keep a plain stat for them.
+        struct stat64 rawStat;
+        if (stat64(entry.path().c_str(), &rawStat) != 0)
+            rawStat.st_uid = rawStat.st_gid = 0;
+
+        const fs::perms perms = st.permissions();
         char chmodval[16];
-        snprintf(chmodval, sizeof(chmodval), "%o", (int)(stats.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO)));
+        snprintf(chmodval, sizeof(chmodval), "%o",
+                 static_cast<int>(static_cast<int>(perms) & static_cast<int>(fs::perms::all)));
 
         Json::Value item;
         item["name"] = name;
         item["type"] = isDir? "dir" : "file";
-        item["size"] = (Json::Int64)stats.st_size;
-        item["size_fancy"] = isDir? "" : getFancySize((size_t)stats.st_size);
-        item["mtime"] = (Json::Int64)stats.st_mtime;
-        item["uid"] = (Json::UInt)stats.st_uid;
-        item["gid"] = (Json::UInt)stats.st_gid;
+        item["size"] = (Json::Int64)rawStat.st_size;
+        item["size_fancy"] = isDir? "" : getFancySize(static_cast<size_t>(rawStat.st_size));
+        item["mtime"] = (Json::Int64)rawStat.st_mtime;
+        item["uid"] = (Json::UInt)rawStat.st_uid;
+        item["gid"] = (Json::UInt)rawStat.st_gid;
         item["perms"] = chmodval;
-        item["warning"] = ((stats.st_mode & S_IRWXO) == 7 || (stats.st_mode & S_IRWXO) == 6);
-        item["executable"] = ((stats.st_mode & S_IXUSR) != 0);
+        const fs::perms others = perms & fs::perms::others_all;
+        item["warning"] = (others == (fs::perms::others_write | fs::perms::others_exec)
+                           || others == (fs::perms::others_read | fs::perms::others_write | fs::perms::others_exec));
+        item["executable"] = ((perms & fs::perms::owner_exec) != fs::perms::none);
 
         vec.push_back(item);
     }
-    closedir(dirp);
 
     // Folders first, then case-insensitive name order.
     std::sort(vec.begin(), vec.end(), [](const Json::Value &a, const Json::Value &b){

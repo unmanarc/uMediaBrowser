@@ -4,12 +4,14 @@
 #include <Mantids30/Memory/streamable_file.h>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/trim.hpp>
 
-#include <unistd.h>
 #include <fcntl.h>
-
-#include <string>
+#include <filesystem>
 #include <fstream>
+#include <string>
+
+namespace fs = std::filesystem;
 
 using namespace Mantids30;
 using namespace Mantids30::Network::Protocol;
@@ -33,12 +35,12 @@ static bool resolveUploadPath0NE(const std::string &fileName, const std::string 
         return false;
     }
 
-    char *resolvedDir = realpath(serverDir.c_str(), nullptr);
-    if (!resolvedDir)
+    std::error_code ec;
+    const fs::path resolvedDir = fs::canonical(serverDir, ec);
+    if (ec)
         return false;
 
-    std::string fullPath(resolvedDir);
-    free(resolvedDir);
+    std::string fullPath = resolvedDir.string();
 
     if (fullPath.empty() || fullPath.back() != '/')
         fullPath += '/';
@@ -56,29 +58,33 @@ void cbFileTransferMIMEHeaderReady(void *obj, const std::string &partName, const
 
     HTTPv1_Server::LocalRequestedFileInfo reqInfo;
 
-    if (!access((webClientParameters->uploadDirBase + "/.dontupload").c_str(), F_OK))
+    if (fs::exists(webClientParameters->uploadDirBase + "/.dontupload"))
     {
         webClientParameters->rpcLog->log(Logs::ERROR, webClientParameters->remoteIP,"","", "", "fileServer", 65535, "R/UPLOAD-FAIL-PERMS-DIR: %s", webClientParameters->uploadDirBase.c_str());
         return;
     }
 
-    if (!access((webClientParameters->uploadDirBase + "/.uploadname").c_str(), R_OK))
     {
-        std::ifstream file;
-        std::string line;
-        file.open((webClientParameters->uploadDirBase + "/.uploadname").c_str());
-        if (file)
+        std::error_code pec;
+        const fs::file_status upSt = fs::status(webClientParameters->uploadDirBase + "/.uploadname", pec);
+        const bool uploadnameReadable = !pec && (upSt.permissions() & fs::perms::owner_read) != fs::perms::none;
+        if (!uploadnameReadable)
         {
-            if (getline(file, line))
+            std::ifstream file;
+            std::string line;
+            file.open((webClientParameters->uploadDirBase + "/.uploadname").c_str());
+            if (file)
             {
-                while (line.back() == '\n' || line.back() == '\r')
-                    line.pop_back();
-                fileName = line;
+                if (std::getline(file, line))
+                {
+                    boost::trim(line);
+                    fileName = line;
+                }
+                file.close();
             }
-            file.close();
+            else
+                return;
         }
-        else
-            return;
     }
 
     if (WebClientHdlr::resolveLocalFilePathFromURI0E("/" + fileName, webClientParameters->uploadDirBase, &reqInfo))

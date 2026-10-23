@@ -59,6 +59,11 @@ find_package(Boost REQUIRED COMPONENTS regex thread)
 target_include_directories(${APP_NAME} PUBLIC ${Boost_INCLUDE_DIRS})
 target_link_libraries(${APP_NAME} ${Boost_LIBRARIES})
 
+# std::filesystem needs an explicit library on older GCC toolchains.
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9)
+    target_link_libraries(${APP_NAME} "-lstdc++fs")
+endif()
+
 ################################################################################
 # Mantids30 Libraries:
 ################################################################################

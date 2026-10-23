@@ -2,10 +2,10 @@
 #include "action_common.h"
 #include <Mantids30/Protocol_HTTP/rsp_status.h>
 
-#include <sys/stat.h>
-#include <sys/types.h>
-
+#include <filesystem>
 #include <string>
+
+namespace fs = std::filesystem;
 
 using namespace Mantids30;
 using namespace Mantids30::Network::Protocol;
@@ -39,7 +39,8 @@ Status::Code WebClientHdlr::action_mkdir()
         return respond(HTTP::Status::Code::S_404_NOT_FOUND, clientRequest.getURI().c_str());
     }
 
-    if (mkdir(info.fullPath.c_str(), 0755) != 0)
+    std::error_code ec;
+    if (!fs::create_directory(info.fullPath, ec) || ec)
     {
         Json::Value d;
         writeJSON(false, "Could not create folder", d);

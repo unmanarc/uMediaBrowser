@@ -5,8 +5,11 @@
 #include <Mantids30/Memory/streamable_process.h>
 #include <Mantids30/Program_Logs/loglevels.h>
 
+#include <filesystem>
 #include <string>
 #include <vector>
+
+namespace fs = std::filesystem;
 
 using namespace Mantids30;
 using namespace Mantids30::Network::Protocol;
@@ -61,18 +64,11 @@ Status::Code WebClientHdlr::action_archive()
         std::string full = info.fullPath;
         while (full.size() > 1 && full.back() == '/')
             full.pop_back();   // directories resolve with a trailing slash
-        const size_t slash = full.find_last_of('/');
-        std::string pdir, base;
-        if (slash == std::string::npos)
-        {
-            pdir = ".";
-            base = full;
-        }
-        else
-        {
-            base = full.substr(slash + 1);
-            pdir = (slash == 0) ? "/" : full.substr(0, slash);
-        }
+        const fs::path p(full);
+        std::string pdir = p.parent_path().string();
+        std::string base = p.filename().string();
+        if (pdir.empty())
+            pdir = (full[0] == '/')? "/" : ".";
         // The UI only selects items within a single directory, so all items
         // share the same parent; use the first one as the archive base.
         if (parent.empty())

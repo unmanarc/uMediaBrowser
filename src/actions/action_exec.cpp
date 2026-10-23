@@ -5,10 +5,10 @@
 #include <Mantids30/Helpers/appexec.h>
 #include <Mantids30/Memory/streamable_process.h>
 
-#include <unistd.h>
-#include <sys/stat.h>
-
+#include <filesystem>
 #include <string>
+
+namespace fs = std::filesystem;
 
 using namespace Mantids30;
 using namespace Mantids30::Network::Protocol;
@@ -36,9 +36,10 @@ Status::Code WebClientHdlr::action_exec()
     }
 
     // Only executable regular files may be executed (CGI-like).
-    struct stat st;
-    if (stat(fileInfo.fullPath.c_str(), &st) != 0 || !S_ISREG(st.st_mode)
-        || access(fileInfo.fullPath.c_str(), X_OK) != 0)
+    std::error_code ec;
+    const fs::file_status st = fs::status(fileInfo.fullPath, ec);
+    if (ec || st.type() != fs::file_type::regular
+        || (st.permissions() & fs::perms::owner_exec) == fs::perms::none)
     {
         getResponseContentStreamableObject()->writeString(HTML_404);
         return respond(HTTP::Status::Code::S_404_NOT_FOUND, clientRequest.getURI().c_str());

@@ -2,48 +2,15 @@
 #include "action_common.h"
 #include <Mantids30/Protocol_HTTP/rsp_status.h>
 
-#include <dirent.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
+#include <filesystem>
 #include <string>
 #include <vector>
+
+namespace fs = std::filesystem;
 
 using namespace Mantids30;
 using namespace Mantids30::Network::Protocol;
 using namespace Mantids30::Network::Protocol::HTTP;
-
-// Recursively remove a file or directory (relative to the already-validated path).
-static bool removeRecursive(const std::string &path)
-{
-    struct stat st;
-    if (lstat(path.c_str(), &st) != 0)
-        return false;
-
-    if (!S_ISDIR(st.st_mode))
-        return unlink(path.c_str()) == 0;
-
-    DIR *d = opendir(path.c_str());
-    if (!d)
-        return false;
-
-    struct dirent *e;
-    bool ok = true;
-    while ((e = readdir(d)) != nullptr)
-    {
-        std::string name = e->d_name;
-        if (name == "." || name == "..")
-            continue;
-        if (!removeRecursive(path + "/" + name))
-            ok = false;
-    }
-    closedir(d);
-
-    if (rmdir(path.c_str()) != 0)
-        ok = false;
-
-    return ok;
-}
 
 Status::Code WebClientHdlr::action_delete()
 {
@@ -90,7 +57,9 @@ Status::Code WebClientHdlr::action_delete()
             break;
         }
 
-        if (!removeRecursive(info.fullPath))
+        std::error_code ec;
+        fs::remove_all(info.fullPath, ec);
+        if (ec)
         {
             error = "Could not delete: " + f;
             break;
