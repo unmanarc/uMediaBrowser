@@ -4,6 +4,7 @@
 #include <Mantids30/Memory/b_mem.h>
 #include <Mantids30/Protocol_HTTP/httpv1_server.h>
 #include <Mantids30/Program_Logs/rpclog.h>
+#include <json/json.h>
 
 struct webClientParams
 {
@@ -48,6 +49,9 @@ public:
         return HTTPv1_Server::resolveLocalFilePathFromURI0E(uri, serverDir, info);
     }
 
+    // Non-owning access for the upload MIME callback (lives in action_upload.cpp).
+    webClientParams *getWebClientParametersPtr() { return &webClientParameters; }
+
 protected:
     /**
      * @brief onHTTPClientHeadersReceived Process Client Options (eg. check if it's a file uploader)
@@ -68,13 +72,30 @@ private:
     bool checkCSRFTokenOnPOST();
 
     bool containOnlyAllowedChars(const std::string &str);
-    void generateIndexOf(const LocalRequestedFileInfo &fileInfo);
-    void generateTarGz(const LocalRequestedFileInfo &fileInfo);
 
     std::string getFancySize(size_t  size);
+
+    // Write a JSON envelope: { "ok": bool, "error": string, "data": ... }
+    void writeJSON(const bool ok, const std::string &error, const Json::Value &data);
+
+    // Resolve an existing URI-style path (eg. "/a/b") against the document root.
+    bool resolveExistingPath(const std::string &uriStylePath, LocalRequestedFileInfo &info);
+    // Resolve a not-yet-existing child inside an existing parent directory.
+    bool resolveNewChildPath(const std::string &parentUri, const std::string &childName, LocalRequestedFileInfo &info);
+
+    // Actions (each implemented in its own src/actions/*.cpp):
+    Mantids30::Network::Protocol::HTTP::Status::Code action_ls();
+    Mantids30::Network::Protocol::HTTP::Status::Code action_tree();
+    Mantids30::Network::Protocol::HTTP::Status::Code action_download();
+    Mantids30::Network::Protocol::HTTP::Status::Code action_archive();
+    Mantids30::Network::Protocol::HTTP::Status::Code action_upload();
+    Mantids30::Network::Protocol::HTTP::Status::Code action_mkdir();
+    Mantids30::Network::Protocol::HTTP::Status::Code action_delete();
+    Mantids30::Network::Protocol::HTTP::Status::Code action_thumb();
+    Mantids30::Network::Protocol::HTTP::Status::Code action_detail();
+    Mantids30::Network::Protocol::HTTP::Status::Code action_exec();
+
     webClientParams webClientParameters;
-
-
 };
 
 
