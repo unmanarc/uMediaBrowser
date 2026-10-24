@@ -50,29 +50,40 @@ body{
   padding:0 10px; background:var(--panel); border-top:1px solid var(--border);
 }
 
-/* ----- B + D ----- */
-#zoneMid{display:grid; grid-template-columns:260px 1fr; min-height:0;}
-#zoneMid.has-detail{grid-template-columns:260px 1fr 300px;}
+/* ----- B + D + E ----- */
+#zoneMid{display:grid; grid-template-columns:260px 1fr 300px; min-height:0;}
 #zoneE{
-  display:none; background:var(--panel); border-left:1px solid var(--border);
+  display:flex; flex-direction:column; min-height:0;
+  background:var(--panel); border-left:1px solid var(--border);
   overflow:auto; padding:16px;
 }
-#zoneMid.has-detail #zoneE{display:block;}
-#zoneE h3{margin:0 0 12px; font-size:14px; word-break:break-all;}
-#zoneE .d-thumb{display:flex; justify-content:center; margin-bottom:12px;}
-#zoneE .d-thumb img{max-width:100%; max-height:260px; border-radius:8px; object-fit:contain;}
-#zoneE table{width:100%; border-collapse:collapse; font-size:12.5px;}
-#zoneE td{padding:5px 0; vertical-align:top;}
-#zoneE td.k{color:var(--fg-dim); padding-right:12px; white-space:nowrap; width:38%;}
-#zoneE td.v{word-break:break-word;}
-#zoneE .exif h2{margin:16px 0 8px; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--fg-dim);}
-#zoneE .empty{color:var(--fg-dim); font-size:13px; text-align:center; padding:40px 0;}
+#detailContent{flex:1 1 auto;}
+#selActions{
+  flex:none; display:none; justify-content:center; gap:12px;
+  padding-top:16px; border-top:1px solid var(--border); margin-top:8px;
+}
+#selActions.show{display:flex;}
+#selActions .btn{min-width:110px; justify-content:center;}
+#detailContent h3{margin:0 0 12px; font-size:14px; word-break:break-all;}
+#detailContent .d-thumb{display:flex; justify-content:center; margin-bottom:12px;}
+#detailContent .d-thumb img{max-width:100%; max-height:260px; border-radius:8px; object-fit:contain;}
+#detailContent table{width:100%; border-collapse:collapse; font-size:12.5px;}
+#detailContent td{padding:5px 0; vertical-align:top;}
+#detailContent td.k{color:var(--fg-dim); padding-right:12px; white-space:nowrap; width:38%;}
+#detailContent td.v{word-break:break-word;}
+#detailContent .exif h2{margin:16px 0 8px; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--fg-dim);}
+#detailContent .empty{color:var(--fg-dim); font-size:13px; text-align:center; padding:40px 0;}
 #zoneB{
   background:var(--panel); border-right:1px solid var(--border);
   overflow:auto; padding:6px 0;
 }
 #zoneD{
   position:relative; overflow:auto; padding:12px;
+}
+#rubberBand{
+  position:absolute; z-index:50; display:none;
+  border:1px solid var(--accent); background:rgba(59,130,246,.15);
+  border-radius:2px; pointer-events:none;
 }
 
 /* Toolbar / icon buttons */
@@ -163,6 +174,26 @@ i.ic-album{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 #filesGrid.view-list .item .meta span{min-width:70px;}
 #emptyMsg{padding:40px; text-align:center; color:var(--fg-dim);}
 
+/* ----- mobile (phone) view: only the file view (D) and the status bar (F)
+   are kept. Header (A), location bar (C), tree (B) and details (E) are hidden
+   and navigation is done through the ".." entry in the file list. ----- */
+@media (max-width: 640px), (max-height: 520px) {
+  #app{grid-template-rows:auto 1fr 48px;}
+  #zoneA, #zoneC, #zoneB, #zoneE{display:none !important;}
+  #zoneMid{display:block;}
+  #zoneD{padding:8px;}
+  #zoneF{min-height:48px; gap:6px; padding:0 8px; overflow-x:auto;}
+  #zoneF .sel{max-width:96px;}
+  .item{padding:12px 8px;}
+  .item .name{font-size:13px; -webkit-line-clamp:3;}
+  #filesGrid.view-grid .item .thumb i.ic{width:calc(var(--thumb-h) - 6px); height:calc(var(--thumb-h) - 6px);}
+  .item.is-updir{
+    flex-direction:row; justify-content:flex-start; align-items:center; gap:10px;
+    width:100%; background:var(--panel); border-color:var(--border);
+  }
+  .item.is-updir .name{white-space:nowrap; font-weight:600;}
+}
+
 /* context menu */
 #ctxMenu{
   position:fixed; z-index:1000; min-width:200px; background:var(--panel2);
@@ -248,8 +279,6 @@ i.ic-album{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <span class="sep" style="width:1px;height:24px;background:var(--border);margin:0 4px;"></span>
     <button class="btn icon" id="btnNewFolder" title="New folder"><i class="ic ic-newfolder"></i></button>
     <button class="btn icon" id="btnUpload" title="Upload files"><i class="ic ic-upload"></i></button>
-    <button class="btn icon" id="btnDownload" title="Download selected" disabled><i class="ic ic-download"></i></button>
-    <button class="btn icon danger" id="btnDelete" title="Delete selected" disabled><i class="ic ic-delete"></i></button>
     <input id="pathInput" type="text" placeholder="Location" spellcheck="false">
     <button class="btn icon" id="btnGo" title="Go"><i class="ic ic-forward"></i></button>
     <input id="filterInput" type="text" placeholder="Filter..." style="max-width:180px;">
@@ -263,9 +292,16 @@ i.ic-album{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     </aside>
     <main id="zoneD" oncontextmenu="return false;">
       <div id="filesGrid" class="view-grid"></div>
+      <div id="rubberBand"></div>
       <div id="emptyMsg" style="display:none;">Empty directory</div>
     </main>
-    <aside id="zoneE"></aside>
+    <aside id="zoneE">
+      <div id="detailContent"></div>
+      <div id="selActions">
+        <button class="btn" id="btnDownload" title="Download selected">Download</button>
+        <button class="btn danger" id="btnDelete" title="Delete selected">Delete</button>
+      </div>
+    </aside>
   </div>
 
   <!-- F: status bar -->
@@ -322,6 +358,16 @@ i.ic-album{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 'use strict';
 var $ = function(s, r){ return (r||document).querySelector(s); };
 var $$ = function(s, r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); };
+
+// Phone view (CSS media query hides the header/location/tree/details panels):
+// only the central view and the footer remain.
+var mqlMobile = window.matchMedia('(max-width: 640px), (max-height: 520px)');
+function isMobile(){ return mqlMobile.matches; }
+// Re-render when the viewport crosses the phone breakpoint so the ".." entry
+// appears/disappears and the panels show/hide without a manual navigation.
+function onMobileBreakpointChange(){ renderFiles(); }
+if (mqlMobile.addEventListener) mqlMobile.addEventListener('change', onMobileBreakpointChange);
+else if (mqlMobile.addListener) mqlMobile.addListener(onMobileBreakpointChange);
 
 function getCookie(name){
   var m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
@@ -595,6 +641,7 @@ async function loadDir(path){
   state.items = r.data.items || [];
   state.flags = r.data.flags || state.flags;
   state.upload_here = r.data.upload_here !== false;
+  state.has_parent = !!r.data.has_parent;
   renderPath(r.data.path, r.data.parent);
   renderToolbar();
   renderFiles();
@@ -704,17 +751,28 @@ function renderFiles(){
   var grid = $('#filesGrid');
   grid.innerHTML = '';
   var q = state.filter.toLowerCase();
+
+  // In the phone view the location bar is hidden, so add a ".." entry to
+  // allow navigating back to the parent directory.
+  var updir = null;
+  if (isMobile() && state.has_parent && !q){
+    updir = { name:'..', type:'dir' };
+  }
   var items = sortItems(state.items.filter(function(it){ return !q || it.name.toLowerCase().indexOf(q) >= 0; }));
-  $('#emptyMsg').style.display = items.length ? 'none' : 'block';
+  $('#emptyMsg').style.display = (items.length || updir) ? 'none' : 'block';
+
+  if (updir) items = [updir].concat(items);
 
   items.forEach(function(it){
     var el = document.createElement('div');
-    el.className = 'item' + (it.type === 'dir' ? ' is-dir' : ' is-file') + (isSelected(it.name) ? ' selected' : '');
+    el.className = 'item' + (it.type === 'dir' ? ' is-dir' : ' is-file') + (isSelected(it.name) ? ' selected' : '') + (it.name === '..' ? ' is-updir' : '');
     el.dataset.name = it.name;
 
     var thumb = document.createElement('div');
     thumb.className = 'thumb';
-    if (it.type === 'dir'){
+    if (it.name === '..'){
+      thumb.innerHTML = '<i class=\"ic ic-up\"></i>';
+    } else if (it.type === 'dir'){
       thumb.innerHTML = '<i class=\"ic ic-folder\"></i>';
     } else if (isImage(it.name)){
       var full = itemPath(it.name);
@@ -756,11 +814,14 @@ function renderFiles(){
     }
 
     el.addEventListener('click', function(ev){
+      if (ev.shiftKey){ selectRange(it.name, ev); return; }
+      if (it.name === '..'){ navigate(upPath()); return; }
       select(it.name, ev.ctrlKey || ev.metaKey);
     });
     el.addEventListener('dblclick', function(){ openItem(it.name); });
     el.addEventListener('contextmenu', function(ev){
       ev.preventDefault();
+      if (it.name === '..'){ hideCtx(); return; }
       if (!isSelected(it.name)) select(it.name, false);
       showCtxMenu(ev.clientX, ev.clientY);
     });
@@ -833,8 +894,55 @@ function select(name, additive){
   renderDetail();
 }
 
+// Names in the exact order the items are currently rendered (filter + sort applied).
+function visibleNames(){
+  var q = state.filter.toLowerCase();
+  return state.items.filter(function(it){ return !q || it.name.toLowerCase().indexOf(q) >= 0; })
+    .map(function(it){ return it.name; });
+}
+
+// All rendered names between two names (inclusive), in render order.
+function rangeNames(a, b){
+  var names = visibleNames();
+  var ia = names.indexOf(a), ib = names.indexOf(b);
+  if (ia < 0 || ib < 0) return [a];
+  if (ia > ib){ var t = ia; ia = ib; ib = t; }
+  return names.slice(ia, ib + 1);
+}
+
+// Update just the .selected classes + toolbar buttons without a full re-render.
+function applySelectionClass(){
+  var sel = {};
+  state.selected.forEach(function(n){ sel[n] = true; });
+  $$('#filesGrid .item').forEach(function(el){
+    el.classList.toggle('selected', !!sel[el.dataset.name]);
+  });
+  updateSelectionButtons();
+}
+
+// Shift+click: extend the selection from the last selected item to the clicked one.
+function selectRange(name, ev){
+  var names = visibleNames();
+  var anchorName = null;
+  if (state.selected.length){
+    anchorName = state.selected[state.selected.length - 1];
+    if (names.indexOf(anchorName) < 0) anchorName = state.selected[0];
+  }
+  if (!anchorName){ state.selected = [name]; }
+  else {
+    state.selected = rangeNames(anchorName, name);
+    if (ev.ctrlKey || ev.metaKey){
+      // Add the range to the existing selection instead of replacing it.
+      state.selected = state.selected.concat(rangeNames(anchorName, name).filter(function(n){ return state.selected.indexOf(n) < 0; }));
+    }
+  }
+  applySelectionClass();
+  renderDetail();
+}
+
 function updateSelectionButtons(){
   var n = state.selected.length;
+  $('#selActions').classList.toggle('show', n > 0);
   $('#btnDownload').disabled = (n === 0);
   $('#btnDelete').disabled = (n === 0 || !state.flags.overwrite);
 }
@@ -866,21 +974,20 @@ function addDetailRows(container, pairs, heading){
 }
 
 function renderDetail(){
-  var zoneE = $('#zoneE');
+  var zoneE = $('#detailContent');
   var mid = $('#zoneMid');
   var n = state.selected.length;
 
-  if (n === 0){ mid.classList.remove('has-detail'); zoneE.innerHTML = ''; return; }
+  // The panel is always visible, so no need to toggle has-detail class.
+  if (n === 0){ zoneE.innerHTML = '<div class="empty">No selection</div>'; return; }
   if (n > 1){
-    mid.classList.add('has-detail');
     zoneE.innerHTML = '<div class="empty">' + n + ' items selected</div>';
     return;
   }
 
   var name = state.selected[0];
   var it = getItem(name);
-  if (!it){ mid.classList.remove('has-detail'); zoneE.innerHTML = ''; return; }
-  mid.classList.add('has-detail');
+  if (!it){ zoneE.innerHTML = '<div class="empty">No selection</div>'; return; }
 
   var full = itemPath(name);
   zoneE.innerHTML = '';
@@ -1053,6 +1160,165 @@ function openDialog(title, fields, onSubmit){
 }
 function closeOverlay(){ $('#overlay').classList.remove('open'); }
 
+// ---------------- RUBBER-BAND SELECTION ----------------
+// Drag on empty space (or starting from an item) selects everything in the
+// rectangle, or everything between the anchor item and the item under the
+// cursor when the drag ends over an item.
+var drag = null;
+
+function dragItemAt(clientX, clientY){
+  var el = document.elementFromPoint(clientX, clientY);
+  if (!el) return null;
+  var item = el.closest ? el.closest('#filesGrid .item') : null;
+  return item ? item.dataset.name : null;
+}
+
+function rectIntersects(rx, ry, rw, rh, r){
+  return rx < r.right && rx + rw > r.left && ry < r.bottom && ry + rh > r.top;
+}
+
+function applyDragSelection(anchorName, endName, shiftHeld, rect){
+  var base = shiftHeld ? drag.baseSelection : [];
+  var sel;
+  if (anchorName && endName){
+    // Range mode: everything between anchor and end (render order).
+    sel = rangeNames(anchorName, endName).filter(function(n){ return base.indexOf(n) < 0; });
+    sel = base.concat(sel);
+  } else {
+    // Rectangle mode: intersect with the visible items.
+    var picked = [];
+    $$('#filesGrid .item').forEach(function(el){
+      if (rectIntersects(rect.x, rect.y, rect.w, rect.h, el.getBoundingClientRect()))
+        picked.push(el.dataset.name);
+    });
+    sel = picked.filter(function(n){ return base.indexOf(n) < 0; });
+    sel = base.concat(sel);
+  }
+  state.selected = sel;
+  applySelectionClass();
+}
+
+function updateRubberBand(sx, sy, cx, cy){
+  var zb = $('#zoneD').getBoundingClientRect();
+  var band = $('#rubberBand');
+  // Convert viewport coords to #zoneD-local coords (scroll is handled since
+  // the band lives inside the scrolled content).
+  var x1 = Math.min(sx, cx) - zb.left, x2 = Math.max(sx, cx) - zb.left;
+  var y1 = Math.min(sy, cy) - zb.top,  y2 = Math.max(sy, cy) - zb.top;
+  band.style.left = x1 + 'px';
+  band.style.top = y1 + 'px';
+  band.style.width = (x2 - x1) + 'px';
+  band.style.height = (y2 - y1) + 'px';
+  band.style.display = 'block';
+}
+
+function hideRubberBand(){
+  $('#rubberBand').style.display = 'none';
+}
+
+function onDragMove(ev){
+  if (!drag) return;
+  if (!drag.started && (Math.abs(ev.clientX - drag.sx) > 4 || Math.abs(ev.clientY - drag.sy) > 4)){
+    drag.started = true;
+  }
+  if (!drag.started) return;
+
+  var zb = $('#zoneD').getBoundingClientRect();
+  var cx = Math.min(Math.max(ev.clientX, zb.left), zb.right);
+  var cy = Math.min(Math.max(ev.clientY, zb.top), zb.bottom);
+  updateRubberBand(drag.sx, drag.sy, cx, cy);
+
+  var rect = {
+    x: Math.min(drag.sx, cx), y: Math.min(drag.sy, cy),
+    w: Math.abs(cx - drag.sx), h: Math.abs(cy - drag.sy)
+  };
+  var endName = dragItemAt(ev.clientX, ev.clientY);
+  applyDragSelection(drag.anchorName, endName, drag.shiftHeld, rect);
+}
+
+function onDragEnd(){
+  if (!drag) return;
+  if (drag.started){
+    renderDetail();
+  }
+  drag = null;
+  hideRubberBand();
+  document.body.style.userSelect = '';
+  document.body.style.cursor = '';
+}
+
+function bindSelection(){
+  var zoneD = $('#zoneD');
+
+  zoneD.addEventListener('mousedown', function(ev){
+    if (ev.button !== 0 || drag) return;
+    var item = ev.target.closest ? ev.target.closest('#filesGrid .item') : null;
+    var onItem = !!(item && item.dataset.name);
+    var shift = ev.shiftKey;
+    var ctrl = ev.ctrlKey || ev.metaKey;
+
+    // If it's a normal click on an item without modifiers, let the click handler deal with it.
+    if (onItem && !shift && !ctrl){
+      // Just start tracking in case it turns into a drag.
+      drag = {
+        sx: ev.clientX, sy: ev.clientY, started: false,
+        anchorName: item.dataset.name, shiftHeld: false,
+        baseSelection: state.selected.slice()
+      };
+      return;
+    }
+
+    // If it's a ctrl/cmd click on an item, let the click handler deal with it.
+    if (onItem && !shift && ctrl){
+      // Just start tracking in case it turns into a drag.
+      drag = {
+        sx: ev.clientX, sy: ev.clientY, started: false,
+        anchorName: item.dataset.name, shiftHeld: false,
+        baseSelection: state.selected.slice()
+      };
+      return;
+    }
+
+    // If it's a shift click on an item, let the click handler deal with it.
+    if (onItem && shift && !ctrl){
+      // Start a range drag from the last selected item.
+      var anchorName = state.selected.length ? state.selected[state.selected.length - 1] : item.dataset.name;
+      drag = {
+        sx: ev.clientX, sy: ev.clientY, started: false,
+        anchorName: anchorName, shiftHeld: true,
+        baseSelection: state.selected.slice()
+      };
+      ev.preventDefault();
+      return;
+    }
+
+    // Empty area: plain click clears; a drag starts the rubber band.
+    var cleared = state.selected.length > 0;
+    state.selected = [];
+    if (cleared){ applySelectionClass(); renderDetail(); }
+
+    var anchorName = dragItemAt(ev.clientX, ev.clientY);
+    drag = {
+      sx: ev.clientX, sy: ev.clientY, started: false,
+      anchorName: anchorName, shiftHeld: shift,
+      baseSelection: shift ? state.selected.slice() : []
+    };
+    ev.preventDefault();
+  });
+
+  // Prevent click events from interfering with drag operations.
+  zoneD.addEventListener('click', function(ev){
+    if (drag && drag.started){
+      ev.stopPropagation();
+      ev.preventDefault();
+    }
+  }, true);
+
+  document.addEventListener('mousemove', onDragMove);
+  document.addEventListener('mouseup', onDragEnd);
+  document.addEventListener('mouseleave', onDragEnd);
+}
+
 // ---------------- BIND + INIT ----------------
 function upPath(){
   var p = state.path;
@@ -1100,7 +1366,7 @@ function bind(){
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape') hideCtx(); });
 
   $('#zoneD').addEventListener('contextmenu', function(e){
-    if (e.target === $('#filesGrid') || e.target === $('#zoneD') || e.target === $('#emptyMsg')){
+    if (e.target === $('#filesGrid') || e.target === $('#zoneD') || e.target === $('#emptyMsg') || e.target === $('#rubberBand')){
       e.preventDefault();
       showCtxMenu(e.clientX, e.clientY);
     }
@@ -1108,6 +1374,7 @@ function bind(){
 
   window.addEventListener('hashchange', function(){ loadDir(currentPathFromHash()); });
   bindAlbum();
+  bindSelection();
 }
 
 (async function init(){
