@@ -260,6 +260,23 @@ i.ic-album{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 
 /* toast */
 #toast{position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:10px 16px; z-index:3000; display:none; box-shadow:0 6px 20px rgba(0,0,0,.5);}
+
+/* drag & drop upload overlay */
+#dropOverlay{
+  position:fixed; inset:0; z-index:2900; display:none;
+  align-items:center; justify-content:center;
+  background:rgba(0,0,0,.55);
+}
+#dropOverlay.open{display:flex;}
+#dropOverlay .dropBox{
+  border:3px dashed var(--accent); border-radius:16px;
+  background:rgba(21,26,33,.85);
+  padding:64px 80px; text-align:center;
+  box-shadow:0 0 40px rgba(59,130,246,.35) inset;
+}
+#dropOverlay .dropBox .ic{width:56px; height:56px; margin:0 auto 16px; display:block;}
+#dropOverlay .dropBox .t1{font-size:18px; font-weight:600; margin-bottom:6px;}
+#dropOverlay .dropBox .t2{color:var(--fg-dim); font-size:13px;}
 </style>
 </head>
 <body>
@@ -353,6 +370,13 @@ i.ic-album{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 </div>
 
 <div id="toast"></div>
+<div id="dropOverlay">
+  <div class="dropBox">
+    <i class="ic ic-upload"></i>
+    <div class="t1">Drop files to upload</div>
+    <div class="t2">They will be saved in the current directory</div>
+  </div>
+</div>
 <input type="file" id="fileInput" multiple style="position:absolute;left:-9999px;top:0;width:1px;height:1px;opacity:0;">
 <script>
 'use strict';
@@ -1102,6 +1126,7 @@ function doUpload(){
   $('#fileInput').click();
 }
 async function uploadFiles(fileList){
+  if (!(state.flags.uploads && state.upload_here)){ toast('Uploads disabled here'); return; }
   var fd = new FormData();
   for (var i=0;i<fileList.length;i++) fd.append('file', fileList[i]);
   var r = await api('?act=upload&path=' + enc(state.path), { method:'POST', body: fd });
@@ -1319,6 +1344,43 @@ function bindSelection(){
   document.addEventListener('mouseleave', onDragEnd);
 }
 
+// ---------------- DRAG & DROP UPLOAD ----------------
+// Only react to drags that carry files; anything else (e.g. text selection
+// or dragging an item with the rubber band) falls through untouched.
+function dragHasFiles(ev){
+  return !!(ev.dataTransfer && ev.dataTransfer.types &&
+    Array.prototype.indexOf.call(ev.dataTransfer.types, 'Files') >= 0);
+}
+
+function bindDropUpload(){
+  var overlay = $('#dropOverlay');
+
+  window.addEventListener('dragenter', function(ev){
+    if (!dragHasFiles(ev)) return;
+    ev.preventDefault();   // needed to allow dropping
+    overlay.classList.add('open');
+  });
+
+  window.addEventListener('dragover', function(ev){
+    if (!dragHasFiles(ev)) return;
+    ev.preventDefault();   // without this the browser navigates away
+  });
+
+  window.addEventListener('dragleave', function(ev){
+    if (!dragHasFiles(ev)) return;
+    if (ev.relatedTarget) return;   // moved inside another element
+    overlay.classList.remove('open');
+  });
+
+  window.addEventListener('drop', function(ev){
+    if (!dragHasFiles(ev)) return;
+    ev.preventDefault();
+    overlay.classList.remove('open');
+    if (ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files.length)
+      uploadFiles(ev.dataTransfer.files);
+  });
+}
+
 // ---------------- BIND + INIT ----------------
 function upPath(){
   var p = state.path;
@@ -1375,6 +1437,7 @@ function bind(){
   window.addEventListener('hashchange', function(){ loadDir(currentPathFromHash()); });
   bindAlbum();
   bindSelection();
+  bindDropUpload();
 }
 
 (async function init(){
