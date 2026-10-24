@@ -40,15 +40,6 @@ public:
 
     void setWebClientParameters(const webClientParams &newWebClientParameters);
 
-    /*
-     * Public wrapper used by the MIME upload callback (the base class version
-     * is a protected static function).
-     */
-    static bool resolveLocalFilePathFromURI0E(const std::string &uri, std::string serverDir, LocalRequestedFileInfo *info)
-    {
-        return HTTPv1_Server::resolveLocalFilePathFromURI0E(uri, serverDir, info);
-    }
-
     // Non-owning access for the upload MIME callback (lives in action_upload.cpp).
     webClientParams *getWebClientParametersPtr() { return &webClientParameters; }
 

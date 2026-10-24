@@ -52,13 +52,13 @@ bool WebClientHdlr::onHTTPClientHeadersReceived()
     if (!checkCSRFTokenOnPOST())
         return true;
 
-    auto vars = clientRequest.getVarsBySource(HTTP::Source::GET);
-    const std::string act = vars->getStringValue("act");
+    auto httpVars_GET = clientRequest.getVarsBySource(HTTP::Source::GET);
+    const std::string act = httpVars_GET->getStringValue("act");
 
     if (clientRequest.requestLine.getHTTPMethod() == "POST" && act == "upload" && webClientParameters.uploads)
     {
         HTTPv1_Server::LocalRequestedFileInfo reqInfo;
-        const std::string path = vars->getStringValue("path");
+        const std::string path = httpVars_GET->getStringValue("path");
 
         if (resolveExistingPath(path.empty() ? "/" : path, reqInfo) && reqInfo.isDirectory)
         {
@@ -175,9 +175,9 @@ Status::Code WebClientHdlr::onHTTPClientContentReceived()
 
     createCSRFTokenCookie();
 
-    auto vars = clientRequest.getVarsBySource(HTTP::Source::GET);
+    auto HTTPVars_GET = clientRequest.getVarsBySource(HTTP::Source::GET);
     const std::string method = clientRequest.requestLine.getHTTPMethod();
-    const std::string act = vars->getStringValue("act");
+    const std::string act = HTTPVars_GET->getStringValue("act");
 
     if (clientRequest.content.getContainerType() == Content::ContainerType::MIME && method == "POST" && act == "upload" && webClientParameters.uploads)
     {
