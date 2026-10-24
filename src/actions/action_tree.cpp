@@ -24,14 +24,12 @@ Status::Code WebClientHdlr::action_tree()
         return respond(HTTP::Status::Code::S_404_NOT_FOUND, clientRequest.getURI().c_str());
     }
 
-    const std::string rel = dirInfo.relativePath.empty()? "/" : dirInfo.relativePath;
+    const std::string rel = dirInfo.relativePath.empty() ? "/" : dirInfo.relativePath;
 
     Json::Value nodes(Json::arrayValue);
 
     std::error_code ec;
-    for (auto it = fs::directory_iterator(dirInfo.fullPath, ec);
-         !ec && it != fs::directory_iterator();
-         it.increment(ec))
+    for (auto it = fs::directory_iterator(dirInfo.fullPath, ec); !ec && it != fs::directory_iterator(); it.increment(ec))
     {
         const fs::directory_entry &entry = *it;
         const std::string name = entry.path().filename().string();
@@ -43,9 +41,7 @@ Status::Code WebClientHdlr::action_tree()
         // Determine whether this subdirectory has any subdirectory of its own.
         bool hasChildren = false;
         std::error_code cec;
-        for (auto cit = fs::directory_iterator(entry.path(), cec);
-             !cec && cit != fs::directory_iterator();
-             cit.increment(cec))
+        for (auto cit = fs::directory_iterator(entry.path(), cec); !cec && cit != fs::directory_iterator(); cit.increment(cec))
         {
             std::error_code isec;
             if (fs::is_directory(cit->path(), isec) && !isec)

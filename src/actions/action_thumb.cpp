@@ -1,7 +1,7 @@
 #include "../webclienthdlr.h"
-#include <Mantids30/Protocol_HTTP/rsp_status.h>
 #include <Mantids30/Helpers/appexec.h>
 #include <Mantids30/Helpers/encoders.h>
+#include <Mantids30/Protocol_HTTP/rsp_status.h>
 
 #include <string>
 
@@ -16,7 +16,14 @@ Status::Code WebClientHdlr::action_thumb()
     std::string file = vars->getStringValue("file");
 
     int size = 0;
-    try { size = std::stoi(vars->getStringValue("s")); } catch (...) { size = 0; }
+    try
+    {
+        size = std::stoi(vars->getStringValue("s"));
+    }
+    catch (...)
+    {
+        size = 0;
+    }
     if (size <= 0)
         size = 128;
     if (size > 512)

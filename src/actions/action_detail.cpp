@@ -1,6 +1,6 @@
 #include "../webclienthdlr.h"
-#include <Mantids30/Protocol_HTTP/rsp_status.h>
 #include <Mantids30/Helpers/appexec.h>
+#include <Mantids30/Protocol_HTTP/rsp_status.h>
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
@@ -13,8 +13,7 @@ using namespace Mantids30::Network::Protocol;
 using namespace Mantids30::Network::Protocol::HTTP;
 using namespace Mantids30::Helpers;
 
-namespace
-{
+namespace {
 // Run a command capturing its stdout into `out`. Returns true if the process
 // could be spawned and its output was fully read.
 bool runCapture(const std::string &exe, const std::vector<std::string> &args, std::string &out)
@@ -70,16 +69,33 @@ Status::Code WebClientHdlr::action_detail()
             const std::string &h = fields[2];
             if (!fmt.empty())
             {
-                if (fmt == "JPEG") data["mime"] = "image/jpeg";
-                else if (fmt == "PNG") data["mime"] = "image/png";
-                else if (fmt == "GIF") data["mime"] = "image/gif";
-                else if (fmt == "WEBP") data["mime"] = "image/webp";
-                else if (fmt == "BMP") data["mime"] = "image/bmp";
-                else if (fmt == "TIFF") data["mime"] = "image/tiff";
-                else data["mime"] = "image/" + fmt;
+                if (fmt == "JPEG")
+                    data["mime"] = "image/jpeg";
+                else if (fmt == "PNG")
+                    data["mime"] = "image/png";
+                else if (fmt == "GIF")
+                    data["mime"] = "image/gif";
+                else if (fmt == "WEBP")
+                    data["mime"] = "image/webp";
+                else if (fmt == "BMP")
+                    data["mime"] = "image/bmp";
+                else if (fmt == "TIFF")
+                    data["mime"] = "image/tiff";
+                else
+                    data["mime"] = "image/" + fmt;
             }
-            try { data["width"] = std::stoi(w); } catch (...) { }
-            try { data["height"] = std::stoi(h); } catch (...) { }
+            try
+            {
+                data["width"] = std::stoi(w);
+            }
+            catch (...)
+            {}
+            try
+            {
+                data["height"] = std::stoi(h);
+            }
+            catch (...)
+            {}
         }
     }
 
@@ -93,12 +109,21 @@ Status::Code WebClientHdlr::action_detail()
         {
             const Json::Value &obj = root[0];
             Json::Value exif(Json::objectValue);
-            static const char *keys[] = {
-                "Make", "Model", "LensModel", "DateTimeOriginal", "CreateDate",
-                "ExposureTime", "FNumber", "ISO", "ISOSpeedRatings", "FocalLength",
-                "Software", "GPSLatitude", "GPSLongitude",
-                "GPSLatitudeRef", "GPSLongitudeRef"
-            };
+            static const char *keys[] = {"Make",
+                                         "Model",
+                                         "LensModel",
+                                         "DateTimeOriginal",
+                                         "CreateDate",
+                                         "ExposureTime",
+                                         "FNumber",
+                                         "ISO",
+                                         "ISOSpeedRatings",
+                                         "FocalLength",
+                                         "Software",
+                                         "GPSLatitude",
+                                         "GPSLongitude",
+                                         "GPSLatitudeRef",
+                                         "GPSLongitudeRef"};
             for (const char *k : keys)
                 if (obj.isMember(k))
                     exif[k] = obj[k];

@@ -44,7 +44,7 @@ Status::Code WebClientHdlr::action_delete()
             break;
         }
 
-        const std::string rel = info.relativePath.empty()? "/" : info.relativePath;
+        const std::string rel = info.relativePath.empty() ? "/" : info.relativePath;
         if (rel == "/" || rel.empty())
         {
             error = "Document root cannot be deleted";
@@ -71,5 +71,5 @@ Status::Code WebClientHdlr::action_delete()
     Json::Value data;
     data["deleted"] = deleted;
     writeJSON(error.empty(), error, data);
-    return respond(error.empty()? HTTP::Status::Code::S_200_OK : HTTP::Status::Code::S_500_INTERNAL_SERVER_ERROR, clientRequest.getURI().c_str());
+    return respond(error.empty() ? HTTP::Status::Code::S_200_OK : HTTP::Status::Code::S_500_INTERNAL_SERVER_ERROR, clientRequest.getURI().c_str());
 }
