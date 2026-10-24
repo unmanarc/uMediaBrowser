@@ -20,34 +20,6 @@ using namespace Mantids30::Network::Protocol::MIME;
 using namespace Mantids30::Memory::Streams;
 using namespace Mantids30::Program;
 
-static bool resolveUploadPath0NE(const std::string &fileName, const std::string &serverDir, WebClientHdlr::LocalRequestedFileInfo *info)
-{
-    if (!info)
-        return false;
-
-    info->reset();
-
-    if (fileName.empty() || fileName == "." || fileName == ".." || fileName.find('/') != std::string::npos || fileName.find('\\') != std::string::npos)
-    {
-        info->isTransversal = true;
-        return false;
-    }
-
-    std::error_code ec;
-    const fs::path resolvedDir = fs::canonical(serverDir, ec);
-    if (ec)
-        return false;
-
-    std::string fullPath = resolvedDir.string();
-
-    if (fullPath.empty() || fullPath.back() != '/')
-        fullPath += '/';
-
-    info->fullPath = fullPath + fileName;
-    info->relativePath = "/" + fileName;
-    info->exists = false;
-    return true;
-}
 
 void cbFileTransferMIMEHeaderReady(void *obj, const std::string &partName, const std::shared_ptr<MIME::MIME_PartMessage> &partMessage)
 {
@@ -62,32 +34,32 @@ void cbFileTransferMIMEHeaderReady(void *obj, const std::string &partName, const
         return;
     }
 
+    if (fs::exists(webClientParameters->uploadDirBase + "/.uploadname"))
     {
-        std::error_code pec;
-        const fs::file_status upSt = fs::status(webClientParameters->uploadDirBase + "/.uploadname", pec);
-        const bool uploadnameReadable = !pec && (upSt.permissions() & fs::perms::owner_read) != fs::perms::none;
-        if (!uploadnameReadable)
+        std::ifstream file;
+        std::string line;
+        file.open((webClientParameters->uploadDirBase + "/.uploadname").c_str());
+        if (file)
         {
-            std::ifstream file;
-            std::string line;
-            file.open((webClientParameters->uploadDirBase + "/.uploadname").c_str());
-            if (file)
+            if (std::getline(file, line))
             {
-                if (std::getline(file, line))
-                {
-                    boost::trim(line);
-                    fileName = line;
-                }
-                file.close();
+                boost::trim(line);
+                fileName = line;
             }
-            else
-                return;
+            file.close();
+        }
+        else
+        {
+            webClientParameters->rpcLog->log(Logs::ERROR, webClientParameters->remoteIP, "", "", "", "fileServer", 65535, "R/UPLOAD-FAIL-UPLOADNAME-PERM: %s", webClientParameters->uploadDirBase.c_str());
+            return;
         }
     }
 
-    if (WebClientHdlr::resolveLocalFilePathFromURI0E("/" + fileName, webClientParameters->uploadDirBase, &reqInfo))
+    if (HTTPv1_Server::resolveLocalFilePathFromURI0E("/" + fileName, webClientParameters->uploadDirBase, &reqInfo))
     {
-        if (boost::ends_with(boost::to_lower_copy(reqInfo.fullPath), "/.dontupload") || boost::ends_with(boost::to_lower_copy(reqInfo.fullPath), "/.uploadname")
+        // File exist
+        if (   boost::ends_with(boost::to_lower_copy(reqInfo.fullPath), "/.dontupload")
+            || boost::ends_with(boost::to_lower_copy(reqInfo.fullPath), "/.uploadname")
             || boost::ends_with(boost::to_lower_copy(reqInfo.fullPath), "/.upload"))
         {
             webClientParameters->rpcLog->log(Logs::CRITICAL, webClientParameters->remoteIP, "", "", "", "fileServer", 65535, "R/UPLOAD-NICETRY: %s", reqInfo.relativePath.c_str());
@@ -114,8 +86,10 @@ void cbFileTransferMIMEHeaderReady(void *obj, const std::string &partName, const
             webClientParameters->rpcLog->log(Logs::ERROR, webClientParameters->remoteIP, "", "", "", "fileServer", 65535, "R/UPLOAD-FAIL-OVERWRITE: %s", reqInfo.relativePath.c_str());
         }
     }
-    else if (resolveUploadPath0NE(fileName, webClientParameters->uploadDirBase, &reqInfo))
+    // TODO: URL Encoded file name (and filename field name)
+    else if (HTTPv1_Server::resolveLocalFilePathFromURI0NE( "/" + fileName, webClientParameters->uploadDirBase, &reqInfo))
     {
+        // File does not exist.
         if (boost::ends_with(boost::to_lower_copy(reqInfo.fullPath), "/.dontupload") || boost::ends_with(boost::to_lower_copy(reqInfo.fullPath), "/.uploadname"))
         {
             webClientParameters->rpcLog->log(Logs::CRITICAL, webClientParameters->remoteIP, "", "", "", "fileServer", 65535, "R/UPLOAD-NICETRY: %s", reqInfo.relativePath.c_str());
@@ -137,10 +111,12 @@ void cbFileTransferMIMEHeaderReady(void *obj, const std::string &partName, const
     }
     else if (reqInfo.isTransversal)
     {
+        // Transversal: outside the directory...
         webClientParameters->rpcLog->log(Logs::CRITICAL, webClientParameters->remoteIP, "", "", "", "fileServer", 65535, "R/UPLOAD-TRANSVERSAL2: %s", fileName.c_str());
     }
     else
     {
+        // ??
         webClientParameters->rpcLog->log(Logs::ERROR, webClientParameters->remoteIP, "", "", "", "fileServer", 65535, "R/UPLOAD-FAIL: %s", fileName.c_str());
     }
 }
