@@ -30,7 +30,7 @@ Status::Code WebClientHdlr::action_ls()
         return respond(HTTP::Status::Code::S_404_NOT_FOUND, clientRequest.getURI().c_str());
     }
 
-    const std::string rel = dirInfo.relativePath.empty()? "/" : dirInfo.relativePath;
+    const std::string rel = dirInfo.relativePath.empty() ? "/" : dirInfo.relativePath;
 
     // Compute the parent path.
     std::string parent = "/";
@@ -44,6 +44,7 @@ Status::Code WebClientHdlr::action_ls()
     Json::Value data;
     data["path"] = rel;
     data["parent"] = parent;
+    data["has_parent"] = (parent != "/");
 
     Json::Value flags;
     flags["uploads"] = webClientParameters.uploads;
@@ -65,9 +66,7 @@ Status::Code WebClientHdlr::action_ls()
     }
 
     std::vector<Json::Value> vec;
-    for (auto it = fs::directory_iterator(dirInfo.fullPath, ec);
-         !ec && it != fs::directory_iterator();
-         it.increment(ec))
+    for (auto it = fs::directory_iterator(dirInfo.fullPath, ec); !ec && it != fs::directory_iterator(); it.increment(ec))
     {
         const fs::directory_entry &entry = *it;
         const std::string name = entry.path().filename().string();
@@ -89,37 +88,38 @@ Status::Code WebClientHdlr::action_ls()
 
         const fs::perms perms = st.permissions();
         char chmodval[16];
-        snprintf(chmodval, sizeof(chmodval), "%o",
-                 static_cast<int>(static_cast<int>(perms) & static_cast<int>(fs::perms::all)));
+        snprintf(chmodval, sizeof(chmodval), "%o", static_cast<int>(static_cast<int>(perms) & static_cast<int>(fs::perms::all)));
 
         Json::Value item;
         item["name"] = name;
-        item["type"] = isDir? "dir" : "file";
-        item["size"] = (Json::Int64)rawStat.st_size;
-        item["size_fancy"] = isDir? "" : getFancySize(static_cast<size_t>(rawStat.st_size));
-        item["mtime"] = (Json::Int64)rawStat.st_mtime;
-        item["uid"] = (Json::UInt)rawStat.st_uid;
-        item["gid"] = (Json::UInt)rawStat.st_gid;
+        item["type"] = isDir ? "dir" : "file";
+        item["size"] = (Json::Int64) rawStat.st_size;
+        item["size_fancy"] = isDir ? "" : getFancySize(static_cast<size_t>(rawStat.st_size));
+        item["mtime"] = (Json::Int64) rawStat.st_mtime;
+        item["uid"] = (Json::UInt) rawStat.st_uid;
+        item["gid"] = (Json::UInt) rawStat.st_gid;
         item["perms"] = chmodval;
         const fs::perms others = perms & fs::perms::others_all;
-        item["warning"] = (others == (fs::perms::others_write | fs::perms::others_exec)
-                           || others == (fs::perms::others_read | fs::perms::others_write | fs::perms::others_exec));
+        item["warning"] = (others == (fs::perms::others_write | fs::perms::others_exec) || others == (fs::perms::others_read | fs::perms::others_write | fs::perms::others_exec));
         item["executable"] = ((perms & fs::perms::owner_exec) != fs::perms::none);
 
         vec.push_back(item);
     }
 
     // Folders first, then case-insensitive name order.
-    std::sort(vec.begin(), vec.end(), [](const Json::Value &a, const Json::Value &b){
-        const bool ad = a["type"].asString() == "dir";
-        const bool bd = b["type"].asString() == "dir";
-        if (ad != bd)
-            return ad;   // dirs come first
-        std::string an = a["name"].asString(), bn = b["name"].asString();
-        std::transform(an.begin(), an.end(), an.begin(), ::tolower);
-        std::transform(bn.begin(), bn.end(), bn.begin(), ::tolower);
-        return an < bn;
-    });
+    std::sort(vec.begin(),
+              vec.end(),
+              [](const Json::Value &a, const Json::Value &b)
+              {
+                  const bool ad = a["type"].asString() == "dir";
+                  const bool bd = b["type"].asString() == "dir";
+                  if (ad != bd)
+                      return ad; // dirs come first
+                  std::string an = a["name"].asString(), bn = b["name"].asString();
+                  std::transform(an.begin(), an.end(), an.begin(), ::tolower);
+                  std::transform(bn.begin(), bn.end(), bn.begin(), ::tolower);
+                  return an < bn;
+              });
 
     for (const Json::Value &v : vec)
         items.append(v);
