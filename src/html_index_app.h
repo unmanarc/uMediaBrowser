@@ -617,9 +617,9 @@ function applyThumbSize(){
   document.documentElement.style.setProperty('--thumb-h', state.thumbSize + 'px');
 }
 
-// Resolution we request from the server (1:1 with the displayed size).
+// Resolution we request from the server (2x the displayed size for HiDPI sharpness).
 function thumbFetchSize(){
-  return state.thumbSize;
+  return state.thumbSize * 2;
 }
 
 function sortItems(items){
@@ -882,7 +882,7 @@ async function thumbWorker(){
     try {
       var r = await api('?act=thumb&file=' + enc(path) + '&s=' + size);
       if (r && r.ok && r.data && r.data.b64){
-        thumbCache[key] = 'data:' + (r.data.mime || 'image/png') + ';base64,' + r.data.b64;
+        thumbCache[key] = 'data:' + (r.data.mime || 'image/jpeg') + ';base64,' + r.data.b64;
       }
     } catch(e){}
     delete thumbPending[key];

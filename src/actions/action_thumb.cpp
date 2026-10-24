@@ -49,8 +49,10 @@ Status::Code WebClientHdlr::action_thumb()
     spawner.addArgument(info.fullPath);
     spawner.addArgument("-auto-orient");
     spawner.addArgument("-thumbnail");
-    spawner.addArgument(std::to_string(size) + "x" + std::to_string(size) + ">");
-    spawner.addArgument("png:-");
+    spawner.addArgument(std::to_string(size * 2) + "x" + std::to_string(size * 2) + ">");
+    spawner.addArgument("-quality");
+    spawner.addArgument("50");
+    spawner.addArgument("jpg:-");
 
     if (!spawner.spawnProcess(true, false))
     {
@@ -74,7 +76,7 @@ Status::Code WebClientHdlr::action_thumb()
     }
 
     Json::Value data;
-    data["mime"] = "image/png";
+    data["mime"] = "image/jpeg";
     data["b64"] = Encoders::encodeToBase64(out);
 
     writeJSON(true, "", data);
