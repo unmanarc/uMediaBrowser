@@ -194,8 +194,10 @@ i.ic-album{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 @media (max-width: 640px), (max-height: 520px) {
   #app{grid-template-rows:48px 1fr;}
   #zoneA, #zoneC, #zoneB, #zoneE{display:none !important;}
-  #zoneMid{display:block;}
-  #zoneD{padding:8px;}
+  #zoneMid{display:block; min-height:0;}
+  /* Keep #zoneD inside the grid track's 1fr height (it has overflow:auto)
+     so its vertical scrollbar stays visible on phones. */
+  #zoneD{padding:8px; height:100%; min-height:0;}
   /* F moves to the top row and becomes the header */
   #zoneF{
     order:-1; flex:0 0 48px; height:48px;
