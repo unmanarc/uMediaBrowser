@@ -989,7 +989,13 @@ function selectRange(name, ev){
 function updateSelectionButtons(){
   var n = state.selected.length;
   $('#selActions').classList.toggle('show', n > 0);
-  $('#btnDownload').disabled = (n === 0);
+
+  // The direct "Download" button only makes sense for a single file.
+  // For a folder, or for several items, the user must pick a format via
+  // the archive buttons, so hide it (the archive entries stay available).
+  var singleFile = (n === 1) && !!getItem(state.selected[0]) && getItem(state.selected[0]).type === 'file';
+  $('#btnDownload').style.display = singleFile ? '' : 'none';
+  $('#btnDownload').disabled = (!singleFile);
   $('#btnDelete').disabled = (n === 0 || !state.flags.overwrite);
 }
 
@@ -1123,15 +1129,22 @@ function showCtxMenu(x, y){
     ctx.appendChild(mi('ic-refresh', 'Refresh', false, doRefresh));
   } else {
     if (n === 1) ctx.appendChild(mi('ic-folder', 'Open', false, function(){ openItem(state.selected[0]); }));
-    ctx.appendChild(mi('ic-download', 'Download', false, doDownloadSelected));
+
+    var sel0 = n === 1 ? getItem(state.selected[0]) : null;
+    // Direct "Download" only applies to a single file. A folder or a
+    // multi-selection is downloaded through an archive, so the user picks
+    // the format below (no implicit tar.gz).
+    if (n === 1 && sel0 && sel0.type === 'file')
+      ctx.appendChild(mi('ic-download', 'Download', false, doDownloadSelected));
+
     if (state.flags.targz){
       ctx.appendChild(mi('ic-download', 'Archive .tar.gz', false, function(){ doArchive('tar.gz'); }));
       ctx.appendChild(mi('ic-download', 'Archive .tar', false, function(){ doArchive('tar'); }));
       ctx.appendChild(mi('ic-download', 'Archive .zip', false, function(){ doArchive('zip'); }));
     }
+
     if (n === 1){
-      var sel = getItem(state.selected[0]);
-      if (state.flags.execute && sel && sel.type === 'file' && sel.executable){
+      if (state.flags.execute && sel0 && sel0.type === 'file' && sel0.executable){
         ctx.appendChild(mi('ic-file', 'Execute', false, function(){ window.open('?act=exec&file=' + enc(itemPath(state.selected[0])), '_blank'); }));
       }
     }
@@ -1151,11 +1164,11 @@ function showCtxMenu(x, y){
 function doRefresh(){ loadDir(state.path); }
 function selectedPaths(){ return state.selected.map(itemPath); }
 function doDownloadSelected(){
-  if (state.selected.length === 1){
-    window.location = '?act=download&file=' + enc(itemPath(state.selected[0])) + '&dl=1';
-  } else {
-    doArchive('tar.gz');
-  }
+  // Only a single file reaches here: folders and multi-selections are
+  // downloaded through an archive where the user explicitly picks the format.
+  var sel = state.selected[0];
+  if (!sel) return;
+  window.location = '?act=download&file=' + enc(itemPath(sel)) + '&dl=1';
 }
 function doArchive(fmt){
   var files = state.selected.map(itemPath).join(',');
