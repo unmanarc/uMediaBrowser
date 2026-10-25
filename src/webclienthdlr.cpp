@@ -5,6 +5,7 @@
 #include <Mantids30/Program_Logs/loglevels.h>
 #include <Mantids30/Protocol_HTTP/rsp_status.h>
 #include <boost/regex.hpp>
+#include <boost/algorithm/string/trim.hpp>
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -48,6 +49,17 @@ bool WebClientHdlr::checkCSRFTokenOnPOST()
 
 bool WebClientHdlr::onHTTPClientHeadersReceived()
 {
+    // When behind a proxy (--use-x-real-ip), the X-Real-IP header is authoritative for all request logs.
+    if (webClientParameters.useXRealIP)
+    {
+        std::string realIP = clientRequest.headers.getOptionRawStringByName("X-Real-IP");
+        boost::trim(realIP);
+        if (!realIP.empty())
+        {
+            clientRequest.networkClientInfo.setClientInformation(realIP, clientRequest.networkClientInfo.isSecure, clientRequest.networkClientInfo.tlsCommonName);
+        }
+    }
+
     if (clientRequest.content.getContainerType() == Content::ContainerType::MIME)
         clientRequest.content.getMultiPartVars()->setCallbackOnHeaderReady(MIME::MIME_Message::MIMECallback());
 

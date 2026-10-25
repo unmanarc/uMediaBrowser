@@ -69,6 +69,7 @@ public:
         globalArguments->addCommandLineOption("HTTP Options", 'a', "laddr", "Listen Address", "*", Memory::Abstract::Var::Type::STRING);
         globalArguments->addCommandLineOption("HTTP Options", 0, "title", "Application title shown in browser tab and toolbar", "", Memory::Abstract::Var::Type::STRING);
         globalArguments->addCommandLineOption("HTTP Options", 't', "threads", "Max Concurrent Connections (Threads)", "1024", Memory::Abstract::Var::Type::UINT16);
+        globalArguments->addCommandLineOption("HTTP Options", 0, "use-x-real-ip", "Use X-Real-IP header for client IP in logs instead of the source IP (behind proxy)", "false", Memory::Abstract::Var::Type::BOOL);
 
         globalArguments->addCommandLineOption("HTTP Security", 'p', "passfile", "HTTP User/Pass File", "", Memory::Abstract::Var::Type::STRING);
 
@@ -144,6 +145,7 @@ public:
         webClientParameters.canUpload = globalArguments->getCommandLineOptionBooleanValue("can-upload");
         webClientParameters.canOverwrite = globalArguments->getCommandLineOptionBooleanValue("can-overwrite");
         webClientParameters.debug = globalArguments->getCommandLineOptionBooleanValue("debug");
+        webClientParameters.useXRealIP = globalArguments->getCommandLineOptionBooleanValue("use-x-real-ip");
         webClientParameters.appTitle = globalArguments->getCommandLineOptionValue("title")->toString();
 
         bool configUseIPv4 = globalArguments->getCommandLineOptionBooleanValue("ipv4");

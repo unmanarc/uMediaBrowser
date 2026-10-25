@@ -111,6 +111,7 @@ HTTP Options:
 -4 --ipv4            : Use only IPv4 (default: true)
 -a --laddr   <value> : Listen Address (default: *)
 -t --threads <value> : Max Concurrent Connections (Threads) (default: 1024)
+    --use-x-real-ip : Use X-Real-IP header for client IP in logs instead of the source IP (behind proxy) (default: false)
 
 HTTP Security:
 --------------

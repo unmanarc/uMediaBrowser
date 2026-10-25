@@ -21,10 +21,12 @@ struct webClientParams
         canOverwrite = false;
         uploadOK = false;
         debug = false;
+        useXRealIP = false;
     }
 
     bool canExecute,canArchive,canUpload,canOverwrite;
     bool debug; ///< Verbose logging (-d/--debug)
+    bool useXRealIP; ///< Use X-Real-IP header for client IP in logs (behind proxy)
     std::string softwareVersion;
     std::string httpDocumentRootDir;
     Mantids30::Program::Logs::RPCLog * rpcLog;
