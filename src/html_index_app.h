@@ -60,6 +60,9 @@ body{
 }
 /* Up/Refresh/Back buttons only exist in the phone header; hidden on desktop. */
 #zoneF .mnav{display:none;}
+/* The directory-name row is a phone-header element; hidden on desktop.
+   (.mbar is the wrapper of the icon bar, so it must stay visible here.) */
+#zoneF .mtitle-row{display:none;}
 
 /* ----- B + D + E ----- */
 #zoneMid{display:grid; grid-template-columns:260px 1fr 300px; min-height:0;}
@@ -195,22 +198,43 @@ i.ic-album{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
    tree (B) and details (E) are hidden. The ".." entry is no longer rendered
    in the list: navigation is done through the header buttons. ----- */
 @media (max-width: 640px), (max-height: 520px) {
-  #app{grid-template-rows:48px 1fr;}
+  #app{grid-template-rows:84px 1fr;}
   #zoneA, #zoneC, #zoneB, #zoneE{display:none !important;}
   #zoneMid{display:block; min-height:0;}
   /* Keep #zoneD inside the grid track's 1fr height (it has overflow:auto)
      so its vertical scrollbar stays visible on phones. */
   #zoneD{padding:8px; height:100%; min-height:0;}
-  /* F moves to the top row and becomes the header */
+  /* F moves to the top row and becomes a two-row header:
+     row 1 = the icon buttons (Up/Refresh/Back, view, size, sort),
+     row 2 = the current directory name, centered and emphasized.
+     (No extra grid children are added: #zoneF itself wraps the two rows
+     so #app's explicit 2-row grid stays exactly aligned.) */
   #zoneF{
-    order:-1; flex:0 0 48px; height:48px;
+    order:-1; flex:0 0 84px; height:84px;
+    display:flex; flex-direction:column;
     border-top:none; border-bottom:1px solid var(--border);
-    gap:6px; padding:0 8px; overflow-x:auto;
+    gap:0; padding:0; overflow:hidden;
+  }
+  /* Row 1: the original horizontal icon bar. */
+  #zoneF .mbar{
+    display:flex; align-items:center; flex:0 0 48px; height:48px;
+    gap:6px; padding:0 8px; overflow-x:auto; overflow-y:hidden;
   }
   #zoneF .mnav{display:inline-flex;}
   #zoneF .mnav-group{display:inline-flex; align-items:center; gap:6px; flex:none;}
   #zoneF .spacer{flex:1 1 auto; min-width:8px;}
   #zoneF .sel{max-width:96px;}
+  /* Row 2: the current directory name, centered and emphasized. */
+  #zoneF .mtitle-row{
+    display:flex; align-items:center; flex:1 1 auto;
+    min-height:0; padding:0 12px; border-top:1px solid var(--border);
+  }
+  #zoneF .mtitle{
+    width:100%; margin:0;
+    font-weight:700; font-size:15px; color:var(--fg);
+    text-align:center; white-space:nowrap; overflow:hidden;
+    text-overflow:ellipsis;
+  }
   .item{padding:12px 8px;}
   .item .name{font-size:13px; -webkit-line-clamp:3;}
   #filesGrid.view-grid .item .thumb i.ic{width:calc(var(--thumb-h) - 6px); height:calc(var(--thumb-h) - 6px);}
@@ -343,36 +367,42 @@ i.ic-album{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     </aside>
   </div>
 
-  <!-- F: status bar (becomes the top header in the phone view) -->
+  <!-- F: status bar (becomes the top header in the phone view; in the phone
+       view it wraps two rows: the icon bar + the directory name) -->
   <footer id="zoneF">
-    <span class="mnav-group">
-      <button class="btn icon mnav" id="btnMUp" title="Up"><i class="ic ic-up"></i></button>
-      <button class="btn icon mnav" id="btnMRefresh" title="Refresh"><i class="ic ic-refresh"></i></button>
-      <button class="btn icon mnav" id="btnMBack" title="Back"><i class="ic ic-back"></i></button>
-    </span>
-    <span class="spacer"></span>
-    <button class="btn icon" id="btnGrid" title="Grid view"><i class="ic ic-grid"></i></button>
-    <button class="btn icon" id="btnList" title="List view"><i class="ic ic-list"></i></button>
-    <button class="btn icon" id="btnAlbum" title="Album view"><i class="ic ic-album"></i></button>
-    <select id="sizeSelect" class="sel" title="Icon size">
-      <option value="48">48 px</option>
-      <option value="72" selected>72 px</option>
-      <option value="96">96 px</option>
-      <option value="128">128 px</option>
-      <option value="192">192 px</option>
-      <option value="256">256 px</option>
-      <option value="384">384 px</option>
-      <option value="512">512 px</option>
-    </select>
-    <select id="sortSelect" class="sel" title="Sort">
-      <option value="name:asc" selected>Name</option>
-      <option value="name:desc">Name &#8595;</option>
-      <option value="date:desc">Date</option>
-      <option value="date:asc">Date &#8593;</option>
-      <option value="size:desc">Size</option>
-      <option value="size:asc">Size &#8593;</option>
-      <option value="type:asc">Type</option>
-    </select>
+    <div class="mbar">
+      <span class="mnav-group">
+        <button class="btn icon mnav" id="btnMUp" title="Up"><i class="ic ic-up"></i></button>
+        <button class="btn icon mnav" id="btnMRefresh" title="Refresh"><i class="ic ic-refresh"></i></button>
+        <button class="btn icon mnav" id="btnMBack" title="Back"><i class="ic ic-back"></i></button>
+      </span>
+      <span class="spacer"></span>
+      <button class="btn icon" id="btnGrid" title="Grid view"><i class="ic ic-grid"></i></button>
+      <button class="btn icon" id="btnList" title="List view"><i class="ic ic-list"></i></button>
+      <button class="btn icon" id="btnAlbum" title="Album view"><i class="ic ic-album"></i></button>
+      <select id="sizeSelect" class="sel" title="Icon size">
+        <option value="48">48 px</option>
+        <option value="72" selected>72 px</option>
+        <option value="96">96 px</option>
+        <option value="128">128 px</option>
+        <option value="192">192 px</option>
+        <option value="256">256 px</option>
+        <option value="384">384 px</option>
+        <option value="512">512 px</option>
+      </select>
+      <select id="sortSelect" class="sel" title="Sort">
+        <option value="name:asc" selected>Name</option>
+        <option value="name:desc">Name &#8595;</option>
+        <option value="date:desc">Date</option>
+        <option value="date:asc">Date &#8593;</option>
+        <option value="size:desc">Size</option>
+        <option value="size:asc">Size &#8593;</option>
+        <option value="type:asc">Type</option>
+      </select>
+    </div>
+    <div class="mtitle-row">
+      <span class="mtitle" id="mTitle"></span>
+    </div>
   </footer>
 </div>
 
@@ -777,6 +807,11 @@ function makeCrumb(path){
 
 function renderPath(path, parent){
   $('#pathInput').value = normPath(path);
+  // Second row of the mobile header: the current directory name (root = "/").
+  var p = normPath(path);
+  var name = (p === '/') ? '/' : p.split('/').filter(Boolean).pop();
+  $('#mTitle').textContent = name;
+  $('#mTitle').title = p;
 }
 
 function renderToolbar(){
@@ -961,19 +996,19 @@ function renderFiles(){
 // of the WHOLE page (not just the row) and lock that width onto all cards so
 // the whole grid aligns. Re-runs after each thumbnail loads, since a loaded
 // image can be wider than the placeholder it replaces.
+//
+// Before measuring we must clear the previously forced inline width on every
+// card: otherwise the forced width clamps offsetWidth and the measurement is
+// stuck at the (possibly too-small) value from the last run. Temporarily
+// restore width:max-content, read the natural widths, then re-apply the new
+// maximum.
 function measureGridWidths(){
   if (state.view !== 'grid') return;
-  //
-  // Before measuring we must clear the previously forced inline width on every
-  // card: otherwise the forced width clamps offsetWidth and the measurement is
-  // stuck at the (possibly too-small) value from the last run. Temporarily
-  // restore width:max-content, read the natural widths, then re-apply the new
-  // maximum.
+  var items = $$('#filesGrid .item');
+  if (!items.length) return;
   // Clear the previously locked width so each card reports its natural
   // max-content width (thumbnail may have loaded since the last measurement).
   items.forEach(function(el){ el.style.width = ''; });
-  var items = $$('#filesGrid .item');
-  if (!items.length) return;
   var max = 0;
   items.forEach(function(el){
     var w = el.offsetWidth;
