@@ -135,24 +135,20 @@ bool WebClientHdlr::resolveNewChildPath(const std::string &parentUri, const std:
     if (childName.empty() || childName == "." || childName == ".." || childName.find('/') != std::string::npos || childName.find('\\') != std::string::npos)
         return false;
 
-    LocalRequestedFileInfo parent;
-    if (!resolveExistingPath(parentUri.empty() ? "/" : parentUri, parent) || !parent.isDirectory)
+    // Parent must exist and be a directory.
+    if (!resolveExistingPath(parentUri.empty() ? "/" : parentUri, info) || !info.isDirectory)
         return false;
 
-    std::string full = parent.fullPath;
-    if (full.empty() || full.back() != '/')
-        full += '/';
-    full += childName;
+    // Build the combined URI and let 0NE resolve it (normalizes symlinks, flags transversal, requires non-existence).
+    const std::string parentRel = info.relativePath.empty() ? "/" : info.relativePath;
+    const std::string uri = (parentRel.back() == '/' ? parentRel : parentRel + "/") + childName;
 
-    std::string rel = parent.relativePath.empty() ? "/" : parent.relativePath;
-    if (rel.back() != '/')
-        rel += '/';
-    rel += childName;
+    LocalRequestedFileInfo candidate;
+    if (!HTTPv1_Server::resolveLocalFilePathFromURI0NE(uri, webClientParameters.httpDocumentRootDir, &candidate) || candidate.isTransversal || candidate.exists)
+        return false;
 
-    info.fullPath = full;
-    info.relativePath = rel;
-    info.exists = false;
-    info.isDirectory = true;
+    info = candidate;
+    info.isDirectory = true; // 0NE does not stat (the path does not exist yet).
     return true;
 }
 
