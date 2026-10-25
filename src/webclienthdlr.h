@@ -14,16 +14,16 @@ struct webClientParams
 {
     webClientParams()
     {
-        execute = false;
+        canExecute = false;
         rpcLog = nullptr;
-        targz = false;
-        uploads = false;
-        overwrite = false;
+        canArchive = false;
+        canUpload = false;
+        canOverwrite = false;
         uploadOK = false;
         debug = false;
     }
 
-    bool execute,targz,uploads,overwrite;
+    bool canExecute,canArchive,canUpload,canOverwrite;
     bool debug; ///< Verbose logging (-d/--debug)
     std::string softwareVersion;
     std::string httpDocumentRootDir;
