@@ -779,6 +779,12 @@ function updateNavButtons(){
 async function loadDir(path){
   state.path = path;
   state.selected = [];
+  // The album list is cached from state.items; drop it whenever the
+  // directory changes, otherwise the album keeps the previous folder's
+  // media (wrong count) and builds URLs with the new path + old names
+  // (404s).
+  albumListCache = [];
+  albumIdx = -1;
   var r = await api('?act=ls&path=' + enc(path));
   if (!r || !r.ok){
     toast(r && r.error ? r.error : 'Error loading directory');
