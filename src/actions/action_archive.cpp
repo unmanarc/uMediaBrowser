@@ -19,7 +19,7 @@ using namespace Mantids30::Helpers;
 
 Status::Code WebClientHdlr::action_archive()
 {
-    if (!webClientParameters.targz)
+    if (!webClientParameters.canArchive)
     {
         Json::Value d;
         writeJSON(false, "Archive downloads are disabled", d);

@@ -57,7 +57,7 @@ bool WebClientHdlr::onHTTPClientHeadersReceived()
     auto httpVars_GET = clientRequest.getVarsBySource(HTTP::Source::GET);
     const std::string act = httpVars_GET->getStringValue("act");
 
-    if (clientRequest.requestLine.getHTTPMethod() == "POST" && act == "upload" && webClientParameters.uploads)
+    if (clientRequest.requestLine.getHTTPMethod() == "POST" && act == "upload" && webClientParameters.canUpload)
     {
         HTTPv1_Server::LocalRequestedFileInfo reqInfo;
         const std::string path = httpVars_GET->getStringValue("path");
@@ -198,7 +198,7 @@ Status::Code WebClientHdlr::onHTTPClientContentReceived()
            act.c_str(),
            clientRequest.getURI().c_str());
 
-    if (clientRequest.content.getContainerType() == Content::ContainerType::MIME && method == "POST" && act == "upload" && webClientParameters.uploads)
+    if (clientRequest.content.getContainerType() == Content::ContainerType::MIME && method == "POST" && act == "upload" && webClientParameters.canUpload)
     {
         logRpc(Logs::INFO, "R/UPLOAD: %s", webClientParameters.uploadOK ? "completed" : "incomplete (no part processed)");
         Json::Value data;

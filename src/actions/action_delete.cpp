@@ -14,7 +14,7 @@ using namespace Mantids30::Network::Protocol::HTTP;
 
 Status::Code WebClientHdlr::action_delete()
 {
-    if (!webClientParameters.overwrite)
+    if (!webClientParameters.canOverwrite)
     {
         Json::Value d;
         writeJSON(false, "Delete is disabled", d);

@@ -13,7 +13,7 @@ using namespace Mantids30::Network::Protocol::HTTP;
 
 Status::Code WebClientHdlr::action_mkdir()
 {
-    if (!webClientParameters.uploads)
+    if (!webClientParameters.canUpload)
     {
         Json::Value d;
         writeJSON(false, "Folder creation is disabled", d);

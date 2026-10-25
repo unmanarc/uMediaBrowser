@@ -66,7 +66,7 @@ void cbFileTransferMIMEHeaderReady(void *obj, const std::string &partName, const
             return;
         }
 
-        if (webClientParameters->overwrite)
+        if (webClientParameters->canOverwrite)
         {
             auto file = std::make_shared<StreamableFile>();
             if (file->open(reqInfo.fullPath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0700) >= 0)

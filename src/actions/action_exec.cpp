@@ -19,7 +19,7 @@ using namespace Mantids30::Program;
 
 Status::Code WebClientHdlr::action_exec()
 {
-    if (!webClientParameters.execute)
+    if (!webClientParameters.canExecute)
     {
         getResponseContentStreamableObject()->writeString(HTML_404);
         return respond(HTTP::Status::Code::S_404_NOT_FOUND, clientRequest.getURI().c_str());
