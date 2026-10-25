@@ -42,6 +42,7 @@ Status::Code WebClientHdlr::action_detail()
     LocalRequestedFileInfo info;
     if (!resolveExistingPath(file, info))
     {
+        logRpc(Mantids30::Program::Logs::WARNING, "R/DETAIL-404: file='%s' not found", file.c_str());
         Json::Value d;
         writeJSON(false, "File not found", d);
         return respond(HTTP::Status::Code::S_404_NOT_FOUND, clientRequest.getURI().c_str());
@@ -52,9 +53,12 @@ Status::Code WebClientHdlr::action_detail()
 
     if (info.isDirectory)
     {
+        logRpc(Mantids30::Program::Logs::INFO, "R/DETAIL: path='%s' (dir)", info.relativePath.c_str());
         writeJSON(true, "", data);
         return respond(HTTP::Status::Code::S_200_OK, clientRequest.getURI().c_str());
     }
+
+    logRpc(Mantids30::Program::Logs::INFO, "R/DETAIL: file='%s' (image metadata via ImageMagick/exiftool)", info.relativePath.c_str());
 
     // Image dimensions + format via ImageMagick identify.
     std::string idOut;

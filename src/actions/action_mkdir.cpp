@@ -26,6 +26,7 @@ Status::Code WebClientHdlr::action_mkdir()
 
     if (name.empty() || ActionCommon::isReservedDotFile(name))
     {
+        logRpc(Mantids30::Program::Logs::WARNING, "R/NEW-400: invalid folder name='%s'", name.c_str());
         Json::Value d;
         writeJSON(false, "Invalid folder name", d);
         return respond(HTTP::Status::Code::S_400_BAD_REQUEST, clientRequest.getURI().c_str());
@@ -34,6 +35,7 @@ Status::Code WebClientHdlr::action_mkdir()
     LocalRequestedFileInfo info;
     if (!resolveNewChildPath(path, name, info))
     {
+        logRpc(Mantids30::Program::Logs::WARNING, "R/NEW-404: parent path='%s' not found", path.c_str());
         Json::Value d;
         writeJSON(false, "Invalid parent path", d);
         return respond(HTTP::Status::Code::S_404_NOT_FOUND, clientRequest.getURI().c_str());
@@ -42,6 +44,7 @@ Status::Code WebClientHdlr::action_mkdir()
     std::error_code ec;
     if (!fs::create_directory(info.fullPath, ec) || ec)
     {
+        logRpc(Mantids30::Program::Logs::ERROR, "R/NEW-FAIL: '%s' (%s)", info.relativePath.c_str(), ec.message().c_str());
         Json::Value d;
         writeJSON(false, "Could not create folder", d);
         return respond(HTTP::Status::Code::S_500_INTERNAL_SERVER_ERROR, clientRequest.getURI().c_str());
@@ -49,6 +52,7 @@ Status::Code WebClientHdlr::action_mkdir()
 
     Json::Value data;
     data["path"] = info.relativePath;
+    logRpc(Mantids30::Program::Logs::INFO, "R/NEW: dir='%s' created", info.relativePath.c_str());
     writeJSON(true, "", data);
     return respond(HTTP::Status::Code::S_200_OK, clientRequest.getURI().c_str());
 }

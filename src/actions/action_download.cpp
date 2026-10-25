@@ -22,6 +22,7 @@ Status::Code WebClientHdlr::action_download()
     LocalRequestedFileInfo info;
     if (!resolveExistingPath(file, info) || info.isDirectory)
     {
+        logRpc(Mantids30::Program::Logs::WARNING, "R/DL-404: file='%s' not found", file.c_str());
         getResponseContentStreamableObject()->writeString(HTML_404);
         return respond(HTTP::Status::Code::S_404_NOT_FOUND, clientRequest.getURI().c_str());
     }
@@ -30,9 +31,15 @@ Status::Code WebClientHdlr::action_download()
     if (!mmap->referenceFile(info.fullPath, true, false))
     {
         // Fallback: serve as plain text error (binary file not readable).
+        logRpc(Mantids30::Program::Logs::ERROR, "R/DL-FAIL: file='%s' mmap failed (unreadable?)", info.fullPath.c_str());
         getResponseContentStreamableObject()->writeString(HTML_404);
         return respond(HTTP::Status::Code::S_404_NOT_FOUND, clientRequest.getURI().c_str());
     }
+
+    logRpc(Mantids30::Program::Logs::INFO, "R/DL: file='%s' %s%s",
+           info.relativePath.c_str(),
+           getFancySize(mmap->size()).c_str(),
+           asAttachment ? " [attachment]" : "");
 
     serverResponse.setContentDataStreamer(mmap);
     detectContentTypeFromFilePath(info.fullPath);

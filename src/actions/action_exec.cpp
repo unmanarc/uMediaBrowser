@@ -31,6 +31,7 @@ Status::Code WebClientHdlr::action_exec()
     LocalRequestedFileInfo fileInfo;
     if (!resolveExistingPath(file, fileInfo) || fileInfo.isDirectory)
     {
+        logRpc(Logs::WARNING, "R/EXEC-404: file='%s' not found or is a directory", file.c_str());
         getResponseContentStreamableObject()->writeString(HTML_404);
         return respond(HTTP::Status::Code::S_404_NOT_FOUND, clientRequest.getURI().c_str());
     }
@@ -40,6 +41,7 @@ Status::Code WebClientHdlr::action_exec()
     const fs::file_status st = fs::status(fileInfo.fullPath, ec);
     if (ec || st.type() != fs::file_type::regular || (st.permissions() & fs::perms::owner_exec) == fs::perms::none)
     {
+        logRpc(Logs::WARNING, "R/EXEC-404: file='%s' is not an executable regular file", file.c_str());
         getResponseContentStreamableObject()->writeString(HTML_404);
         return respond(HTTP::Status::Code::S_404_NOT_FOUND, clientRequest.getURI().c_str());
     }
@@ -49,6 +51,7 @@ Status::Code WebClientHdlr::action_exec()
     if (!spawner->setExec(fileInfo.fullPath))
     {
         delete spawner;
+        logRpc(Logs::ERROR, "R/EXEC-FAIL: could not set exec path '%s'", fileInfo.fullPath.c_str());
         getResponseContentStreamableObject()->writeString(HTML_404);
         return respond(HTTP::Status::Code::S_404_NOT_FOUND, clientRequest.getURI().c_str());
     }
@@ -72,39 +75,24 @@ Status::Code WebClientHdlr::action_exec()
         composedArgumentList += (composedArgumentList.empty() ? "" : " ") + getVars->getStringValue("a" + std::to_string(i));
     }
 
-    webClientParameters.rpcLog->log(Logs::DEBUG,
-                                    clientRequest.networkClientInfo.REMOTE_ADDR,
-                                    "",
-                                    "",
-                                    "",
-                                    "fileServer",
-                                    2048,
-                                    "D/EXEC: %s (args: %s, env: %s)",
-                                    fileInfo.fullPath.c_str(),
-                                    composedArgumentList.c_str(),
-                                    composedEnviromentList.c_str());
+    logRpc(Logs::DEBUG, "D/EXEC: %s (args: %s, env: %s)",
+           fileInfo.fullPath.c_str(),
+           composedArgumentList.c_str(),
+           composedEnviromentList.c_str());
 
     if (spawner->spawnProcess(true, false))
     {
-        webClientParameters.rpcLog->log(Logs::INFO,
-                                        clientRequest.networkClientInfo.REMOTE_ADDR,
-                                        "",
-                                        "",
-                                        "",
-                                        "fileServer",
-                                        2048,
-                                        "E/EXEC-OK: %s (args: %s, env: %s)",
-                                        fileInfo.relativePath.c_str(),
-                                        composedArgumentList.c_str(),
-                                        composedEnviromentList.c_str());
+        logRpc(Logs::INFO, "E/EXEC-OK: %s (args: %s, env: %s)",
+               fileInfo.relativePath.c_str(),
+               composedArgumentList.c_str(),
+               composedEnviromentList.c_str());
         auto streamableP = std::make_shared<StreamableProcess>(spawner);
         serverResponse.setContentDataStreamer(streamableP);
         detectContentTypeFromFilePath(fileInfo.relativePath);
     }
     else
     {
-        webClientParameters.rpcLog
-            ->log(Logs::WARNING, clientRequest.networkClientInfo.REMOTE_ADDR, "", "", "", "fileServer", 2048, "E/EXEC-FAIL: %s (args: %s)", fileInfo.relativePath.c_str(), composedArgumentList.c_str());
+        logRpc(Logs::WARNING, "E/EXEC-FAIL: %s (args: %s)", fileInfo.relativePath.c_str(), composedArgumentList.c_str());
         delete spawner;
         getResponseContentStreamableObject()->writeString(HTML_404);
         return respond(HTTP::Status::Code::S_500_INTERNAL_SERVER_ERROR, clientRequest.getURI().c_str());

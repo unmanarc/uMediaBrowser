@@ -25,6 +25,7 @@ Status::Code WebClientHdlr::action_ls()
     LocalRequestedFileInfo dirInfo;
     if (!resolveExistingPath(path, dirInfo) || !dirInfo.isDirectory)
     {
+        logRpc(Mantids30::Program::Logs::WARNING, "R/LS-404: path='%s' not found or not a directory", path.c_str());
         Json::Value d;
         writeJSON(false, "Directory not found", d);
         return respond(HTTP::Status::Code::S_404_NOT_FOUND, clientRequest.getURI().c_str());
@@ -61,6 +62,7 @@ Status::Code WebClientHdlr::action_ls()
     std::error_code ec;
     if (!fs::is_directory(dirInfo.fullPath, ec) || ec)
     {
+        logRpc(Mantids30::Program::Logs::WARNING, "R/LS-403: path='%s' not accessible (%s)", path.c_str(), ec.message().c_str());
         writeJSON(false, "Folder not accessible", data);
         return respond(HTTP::Status::Code::S_403_FORBIDDEN, clientRequest.getURI().c_str());
     }
@@ -125,6 +127,10 @@ Status::Code WebClientHdlr::action_ls()
         items.append(v);
 
     data["items"] = items;
+
+    logRpc(Mantids30::Program::Logs::INFO, "R/LS: path='%s' -> %u items (dirs first)", rel.c_str(), (unsigned) vec.size());
+    if (webClientParameters.debug && ec)
+        logRpc(Mantids30::Program::Logs::DEBUG, "R/LS-DIRERR: path='%s' %s", path.c_str(), ec.message().c_str());
 
     writeJSON(true, "", data);
     return respond(HTTP::Status::Code::S_200_OK, clientRequest.getURI().c_str());

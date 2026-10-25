@@ -32,6 +32,7 @@ Status::Code WebClientHdlr::action_thumb()
     LocalRequestedFileInfo info;
     if (!resolveExistingPath(file, info) || info.isDirectory)
     {
+        logRpc(Mantids30::Program::Logs::WARNING, "R/THUMB-404: file='%s' not found", file.c_str());
         Json::Value d;
         writeJSON(false, "File not found", d);
         return respond(HTTP::Status::Code::S_404_NOT_FOUND, clientRequest.getURI().c_str());
@@ -41,6 +42,7 @@ Status::Code WebClientHdlr::action_thumb()
     AppSpawn spawner;
     if (!spawner.setExec("/usr/bin/convert"))
     {
+        logRpc(Mantids30::Program::Logs::ERROR, "R/THUMB-FAIL: ImageMagick (convert) not available for '%s'", info.relativePath.c_str());
         Json::Value d;
         writeJSON(false, "ImageMagick not available", d);
         return respond(HTTP::Status::Code::S_500_INTERNAL_SERVER_ERROR, clientRequest.getURI().c_str());
@@ -56,6 +58,7 @@ Status::Code WebClientHdlr::action_thumb()
 
     if (!spawner.spawnProcess(true, false))
     {
+        logRpc(Mantids30::Program::Logs::ERROR, "R/THUMB-FAIL: convert spawn failed for '%s'", info.relativePath.c_str());
         Json::Value d;
         writeJSON(false, "Thumbnail generation failed", d);
         return respond(HTTP::Status::Code::S_500_INTERNAL_SERVER_ERROR, clientRequest.getURI().c_str());
@@ -70,6 +73,7 @@ Status::Code WebClientHdlr::action_thumb()
 
     if (out.empty())
     {
+        logRpc(Mantids30::Program::Logs::WARNING, "R/THUMB-FAIL: unsupported image '%s' (no output)", info.relativePath.c_str());
         Json::Value d;
         writeJSON(false, "Unsupported image", d);
         return respond(HTTP::Status::Code::S_500_INTERNAL_SERVER_ERROR, clientRequest.getURI().c_str());
@@ -79,6 +83,10 @@ Status::Code WebClientHdlr::action_thumb()
     data["mime"] = "image/jpeg";
     data["b64"] = Encoders::encodeToBase64(out);
 
+    logRpc(Mantids30::Program::Logs::INFO, "R/THUMB: file='%s' s=%d -> %zu bytes jpeg",
+           info.relativePath.c_str(),
+           size,
+           out.size());
     writeJSON(true, "", data);
     return respond(HTTP::Status::Code::S_200_OK, clientRequest.getURI().c_str());
 }

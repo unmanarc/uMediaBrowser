@@ -123,6 +123,8 @@ void cbFileTransferMIMEHeaderReady(void *obj, const std::string &partName, const
 
 Status::Code WebClientHdlr::action_upload()
 {
+    logRpc(Mantids30::Program::Logs::INFO, "R/UPLOAD-DONE: dir=%s ok=%s", webClientParameters.uploadDirBase.c_str(),
+           webClientParameters.uploadOK ? "yes" : "no");
     Json::Value data;
     data["uploaded"] = webClientParameters.uploadOK;
     writeJSON(webClientParameters.uploadOK, webClientParameters.uploadOK ? "" : "Upload not completed", data);

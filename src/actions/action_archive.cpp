@@ -35,6 +35,7 @@ Status::Code WebClientHdlr::action_archive()
     std::vector<std::string> names = ActionCommon::splitComma(filesParam);
     if (names.empty())
     {
+        logRpc(Mantids30::Program::Logs::WARNING, "R/TAR-400: no files selected");
         Json::Value d;
         writeJSON(false, "No files selected", d);
         return respond(HTTP::Status::Code::S_400_BAD_REQUEST, clientRequest.getURI().c_str());
@@ -50,12 +51,14 @@ Status::Code WebClientHdlr::action_archive()
         LocalRequestedFileInfo info;
         if (!resolveExistingPath(f, info))
         {
+            logRpc(Mantids30::Program::Logs::WARNING, "R/TAR-400: invalid path='%s'", f.c_str());
             Json::Value d;
             writeJSON(false, "Invalid path: " + f, d);
             return respond(HTTP::Status::Code::S_400_BAD_REQUEST, clientRequest.getURI().c_str());
         }
         if (info.relativePath == "/" || info.relativePath.empty())
         {
+            logRpc(Mantids30::Program::Logs::WARNING, "R/TAR-400: refusing to archive document root");
             Json::Value d;
             writeJSON(false, "Document root cannot be archived", d);
             return respond(HTTP::Status::Code::S_400_BAD_REQUEST, clientRequest.getURI().c_str());
@@ -122,10 +125,11 @@ Status::Code WebClientHdlr::action_archive()
     {
         auto streamableP = std::make_shared<StreamableProcess>(spawner);
         serverResponse.setContentDataStreamer(streamableP);
+        logRpc(Mantids30::Program::Logs::INFO, "R/TAR: %u file(s) -> %s (fmt=%s)", (unsigned) bases.size(), downloadName.c_str(), fmt.c_str());
     }
     else
     {
-        webClientParameters.rpcLog->log(Mantids30::Program::Logs::WARNING, clientRequest.networkClientInfo.REMOTE_ADDR, "", "", "", "fileServer", 2048, "R/ARCHIVE-FAIL: %s", fmt.c_str());
+        logRpc(Mantids30::Program::Logs::WARNING, "R/TAR-FAIL: could not spawn %s for %u file(s)", fmt.c_str(), (unsigned) bases.size());
         delete spawner;
     }
 

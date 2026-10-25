@@ -19,6 +19,7 @@ Status::Code WebClientHdlr::action_tree()
     LocalRequestedFileInfo dirInfo;
     if (!resolveExistingPath(path, dirInfo) || !dirInfo.isDirectory)
     {
+        logRpc(Mantids30::Program::Logs::WARNING, "R/TREE-404: path='%s' not found or not a directory", path.c_str());
         Json::Value d;
         writeJSON(false, "Directory not found", d);
         return respond(HTTP::Status::Code::S_404_NOT_FOUND, clientRequest.getURI().c_str());
@@ -67,6 +68,7 @@ Status::Code WebClientHdlr::action_tree()
     data["path"] = rel;
     data["nodes"] = nodes;
 
+    logRpc(Mantids30::Program::Logs::INFO, "R/TREE: path='%s' -> %u dir nodes", rel.c_str(), (unsigned) nodes.size());
     writeJSON(true, "", data);
     return respond(HTTP::Status::Code::S_200_OK, clientRequest.getURI().c_str());
 }
