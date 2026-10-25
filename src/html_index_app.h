@@ -181,6 +181,9 @@ i.ic-album{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   word-break:break-all; font-size:12.5px;
 }
 #filesGrid.view-list .item .name{font-size:inherit;-webkit-line-clamp:1;}
+/* Grid view: one line (the text is already truncated by shortName) so a name
+   can never stretch the card past the measured page-wide width. */
+#filesGrid.view-grid .item .name{-webkit-line-clamp:1; word-break:normal; overflow-wrap:normal;}
 .item .meta{font-size:11px; color:var(--fg-dim); white-space:nowrap;}
 #filesGrid.view-list .item .meta{margin-left:auto; display:flex; gap:16px;}
 #filesGrid.view-list .item .meta span{min-width:70px;}
@@ -853,6 +856,20 @@ function getItem(name){ return state.items.find(function(i){ return i.name === n
 function isSelected(name){ return state.selected.indexOf(name) >= 0; }
 function escapeHtml(s){ return String(s).replace(/[&<>\"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]; }); }
 
+// Truncate long names for the grid view: first 20 chars + "..." + the last
+// 3 chars of the extension (e.g. "very_long_name_here.png" -> "very_long_nam...png").
+// Names without an extension only get the leading 20 chars + "...".
+// The full name stays available in the title tooltip.
+function shortName(name){
+  if (name.length <= 20) return name;
+  var i = name.lastIndexOf('.');
+  if (i > 0){
+    var ext = name.slice(i + 1);
+    return name.slice(0, 20) + '...' + (ext.length > 3 ? '.' + ext.slice(-3) : ext);
+  }
+  return name.slice(0, 20) + '...';
+}
+
 function renderFiles(){
   var grid = $('#filesGrid');
   grid.innerHTML = '';
@@ -875,6 +892,9 @@ function renderFiles(){
       var key = full + '@' + thumbFetchSize();
       var img = document.createElement('img');
       img.alt = it.name;
+      // A loaded 2x thumbnail can be wider than the placeholder it replaces;
+      // re-measure the page-wide card width once the real image is in.
+      img.addEventListener('load', function(){ measureGridWidths(); });
       if (thumbCache[key]){
         img.src = thumbCache[key];
       } else {
@@ -887,7 +907,9 @@ function renderFiles(){
 
     var nm = document.createElement('div');
     nm.className = 'name';
-    nm.textContent = it.name;
+    // Grid view: truncated (20 + "..." + ext tail) so wide names don't
+    // stretch the card. List view keeps the full name.
+    nm.textContent = state.view === 'grid' ? shortName(it.name) : it.name;
     nm.title = it.name;
 
     el.appendChild(thumb);
@@ -930,7 +952,26 @@ function renderFiles(){
     grid.appendChild(el);
   });
 
+  if (state.view === 'grid') measureGridWidths();
   scheduleThumbs();
+}
+
+// Grid view: every card is width:max-content, so a wide image or a long name
+// stretches only that card and the grid looks ragged. Measure the widest card
+// of the WHOLE page (not just the row) and lock that width onto all cards so
+// the whole grid aligns. Re-runs after each thumbnail loads, since a loaded
+// image can be wider than the placeholder it replaces.
+function measureGridWidths(){
+  if (state.view !== 'grid') return;
+  var items = $$('#filesGrid .item');
+  if (!items.length) return;
+  var max = 0;
+  items.forEach(function(el){
+    var w = el.offsetWidth;
+    if (w > max) max = w;
+  });
+  if (!max) return;
+  items.forEach(function(el){ el.style.width = max + 'px'; });
 }
 
 function scheduleThumbs(){
