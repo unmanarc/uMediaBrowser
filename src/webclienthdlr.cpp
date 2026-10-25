@@ -6,9 +6,11 @@
 #include <Mantids30/Protocol_HTTP/rsp_status.h>
 #include <boost/regex.hpp>
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <unistd.h>
 
+#include <chrono>
 #include <string>
 
 using namespace Mantids30;
@@ -37,7 +39,7 @@ bool WebClientHdlr::checkCSRFTokenOnPOST()
         // Both tokens must be present and match.
         if (headerToken.empty() || cookieToken.empty() || headerToken != cookieToken)
         {
-            webClientParameters.rpcLog->log(Logs::ERROR, clientRequest.networkClientInfo.REMOTE_ADDR, "", "", "", "fileServer", 65535, "R/POST-FAIL-CSRF: %s", clientRequest.getURI().c_str());
+            logRpc(Logs::ERROR, "R/POST-FAIL-CSRF: %s", clientRequest.getURI().c_str());
             return false;
         }
     }
@@ -65,11 +67,11 @@ bool WebClientHdlr::onHTTPClientHeadersReceived()
             webClientParameters.uploadDirBase = reqInfo.fullPath;
             webClientParameters.remoteIP = clientRequest.networkClientInfo.REMOTE_ADDR;
             clientRequest.content.getMultiPartVars()->setCallbackOnHeaderReady(MIME::MIME_Message::MIMECallback(&cbFileTransferMIMEHeaderReady, &webClientParameters));
-            webClientParameters.rpcLog->log(Logs::INFO, clientRequest.networkClientInfo.REMOTE_ADDR, "", "", "", "fileServer", 65535, "R/UPLOAD-REQ: %s", reqInfo.fullPath.c_str());
+            logRpc(Logs::INFO, "R/UPLOAD-REQ: %s", reqInfo.fullPath.c_str());
         }
         else
         {
-            webClientParameters.rpcLog->log(Logs::CRITICAL, clientRequest.networkClientInfo.REMOTE_ADDR, "", "", "", "fileServer", 65535, "R/UPLOAD-TRANSVERSAL1: %s", path.c_str());
+            logRpc(Logs::CRITICAL, "R/UPLOAD-TRANSVERSAL1: %s", path.c_str());
             return false;
         }
     }
@@ -79,18 +81,28 @@ bool WebClientHdlr::onHTTPClientHeadersReceived()
 
 Mantids30::Network::Protocol::HTTP::Status::Code WebClientHdlr::respond(Mantids30::Network::Protocol::HTTP::Status::Code ret, const std::string &uri)
 {
-    webClientParameters.rpcLog->log(ret == HTTP::Status::Code::S_200_OK ? Logs::INFO : Logs::WARNING,
-                                    clientRequest.networkClientInfo.REMOTE_ADDR,
-                                    "",
-                                    "",
-                                    "",
-                                    "fileServer",
-                                    2048,
-                                    "R/%03d:%s: %s",
-                                    static_cast<int>(ret),
-                                    clientRequest.requestLine.getHTTPMethod().c_str(),
-                                    uri.c_str());
+    const long long elapsedMs = requestElapsedMs();
+    const bool ok = (ret == HTTP::Status::Code::S_200_OK);
+
+    // One line per request: status, method, URI and elapsed time.
+    logRpc(ok ? Logs::INFO : Logs::WARNING,
+           "R/%03d:%s: %s (%lld ms)",
+           static_cast<int>(ret),
+           clientRequest.requestLine.getHTTPMethod().c_str(),
+           uri.c_str(),
+           elapsedMs);
+
+    if (webClientParameters.debug && !clientRequest.getURI().empty())
+        logRpc(Logs::DEBUG, "R/FULLURI: %s", clientRequest.getURI().c_str());
+
     return ret;
+}
+
+long long WebClientHdlr::requestElapsedMs() const
+{
+    if (reqStart.time_since_epoch().count() == 0)
+        return 0;
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - reqStart).count();
 }
 
 void WebClientHdlr::createCSRFTokenCookie()
@@ -156,6 +168,8 @@ Status::Code WebClientHdlr::onHTTPClientContentReceived()
 {
     HTTP::Status::Code ret = HTTP::Status::Code::S_404_NOT_FOUND;
 
+    reqStart = std::chrono::steady_clock::now();
+
     if (!checkCSRFTokenOnPOST())
         return HTTP::Status::Code::S_401_UNAUTHORIZED;
 
@@ -163,6 +177,9 @@ Status::Code WebClientHdlr::onHTTPClientContentReceived()
     {
         if (!clientRequest.basicAuth.isEnabled || clientRequest.basicAuth.password != webClientParameters.pass || clientRequest.basicAuth.username != webClientParameters.user)
         {
+            logRpc(Logs::ERROR, "R/AUTH-FAIL: user='%s' method=%s",
+                   clientRequest.basicAuth.username.c_str(),
+                   clientRequest.requestLine.getHTTPMethod().c_str());
             getResponseContentStreamableObject()->writeString(HTML_401);
             serverResponse.sWWWAuthenticateRealm = "Authentication Required";
             return respond(HTTP::Status::Code::S_401_UNAUTHORIZED, clientRequest.getURI().c_str());
@@ -175,8 +192,15 @@ Status::Code WebClientHdlr::onHTTPClientContentReceived()
     const std::string method = clientRequest.requestLine.getHTTPMethod();
     const std::string act = HTTPVars_GET->getStringValue("act");
 
+    // Request-entry line: what arrived before dispatch.
+    logRpc(Logs::DEBUG, "R/REQ: %s act='%s' uri=%s",
+           method.c_str(),
+           act.c_str(),
+           clientRequest.getURI().c_str());
+
     if (clientRequest.content.getContainerType() == Content::ContainerType::MIME && method == "POST" && act == "upload" && webClientParameters.uploads)
     {
+        logRpc(Logs::INFO, "R/UPLOAD: %s", webClientParameters.uploadOK ? "completed" : "incomplete (no part processed)");
         Json::Value data;
         data["uploaded"] = webClientParameters.uploadOK;
         writeJSON(webClientParameters.uploadOK, webClientParameters.uploadOK ? "" : "Upload not completed", data);
@@ -212,6 +236,7 @@ Status::Code WebClientHdlr::onHTTPClientContentReceived()
     }
 
     getResponseContentStreamableObject()->writeString(HTML_404);
+    logRpc(Logs::WARNING, "R/404-NOACT: act='%s' method=%s", act.c_str(), method.c_str());
     return respond(ret, clientRequest.getURI().c_str());
 }
 

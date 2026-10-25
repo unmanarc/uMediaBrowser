@@ -6,6 +6,10 @@
 #include <Mantids30/Program_Logs/rpclog.h>
 #include <json/json.h>
 
+#include <chrono>
+#include <string>
+#include <utility>
+
 struct webClientParams
 {
     webClientParams()
@@ -16,9 +20,11 @@ struct webClientParams
         uploads = false;
         overwrite = false;
         uploadOK = false;
+        debug = false;
     }
 
     bool execute,targz,uploads,overwrite;
+    bool debug; ///< Verbose logging (-d/--debug)
     std::string softwareVersion;
     std::string httpDocumentRootDir;
     Mantids30::Program::Logs::RPCLog * rpcLog;
@@ -43,6 +49,28 @@ public:
 
     // Non-owning access for the upload MIME callback (lives in action_upload.cpp).
     webClientParams *getWebClientParametersPtr() { return &webClientParameters; }
+
+    /**
+     * @brief logRpc Log a per-client request event through the shared RPCLog.
+     * The IP and module are filled automatically; `fmt` is a printf-style format
+     * (may be omitted when there are no variadic args).
+     * DEBUG/DEBUG1 lines only print when the logger was put in debug mode.
+     */
+    void logRpc(Mantids30::Program::Logs::LogLevel level, const char *fmt)
+    {
+        if (webClientParameters.rpcLog)
+            webClientParameters.rpcLog->log(level, clientRequest.networkClientInfo.REMOTE_ADDR, "", "", "", "fileServer", 4096, "%s", fmt);
+    }
+
+    template <typename... Args>
+    void logRpc(Mantids30::Program::Logs::LogLevel level, const char *fmt, Args &&...args)
+    {
+        if (webClientParameters.rpcLog)
+            webClientParameters.rpcLog->log(level, clientRequest.networkClientInfo.REMOTE_ADDR, "", "", "", "fileServer", 4096, fmt, std::forward<Args>(args)...);
+    }
+
+    // Milliseconds elapsed since the current request started (0 before reqStart is set).
+    long long requestElapsedMs() const;
 
 protected:
     /**
@@ -88,6 +116,7 @@ private:
     Mantids30::Network::Protocol::HTTP::Status::Code action_exec();
 
     webClientParams webClientParameters;
+    std::chrono::steady_clock::time_point reqStart;
 };
 
 
