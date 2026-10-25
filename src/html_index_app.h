@@ -198,7 +198,7 @@ i.ic-album{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
    tree (B) and details (E) are hidden. The ".." entry is no longer rendered
    in the list: navigation is done through the header buttons. ----- */
 @media (max-width: 640px), (max-height: 520px) {
-  #app{grid-template-rows:84px 1fr;}
+  #app{grid-template-rows:66px 1fr;}
   #zoneA, #zoneC, #zoneB, #zoneE{display:none !important;}
   #zoneMid{display:block; min-height:0;}
   /* Keep #zoneD inside the grid track's 1fr height (it has overflow:auto)
@@ -210,20 +210,26 @@ i.ic-album{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
      (No extra grid children are added: #zoneF itself wraps the two rows
      so #app's explicit 2-row grid stays exactly aligned.) */
   #zoneF{
-    order:-1; flex:0 0 84px; height:84px;
+    order:-1; flex:0 0 66px; height:66px;
     display:flex; flex-direction:column;
     border-top:none; border-bottom:1px solid var(--border);
     gap:0; padding:0; overflow:hidden;
   }
-  /* Row 1: the original horizontal icon bar. */
+  /* Row 1: the icon bar. It is sized down from the desktop bar (smaller
+     buttons, selects and gaps) so that on phones the items shrink to fit the
+     viewport width instead of overflowing and hiding icons. JS measures the
+     natural (unclamped) width of the row and, when it overflows, scales it
+     with a transform so every control stays visible at any phone size. */
   #zoneF .mbar{
-    display:flex; align-items:center; flex:0 0 48px; height:48px;
-    gap:6px; padding:0 8px; overflow-x:auto; overflow-y:hidden;
+    display:flex; align-items:center; flex:0 0 34px; height:34px;
+    gap:4px; padding:0 6px; overflow-x:visible; overflow-y:hidden;
   }
+  #zoneF .mbar .btn.icon{width:28px; height:28px;}
+  #zoneF .mbar .btn.icon>i{width:16px; height:16px;}
   #zoneF .mnav{display:inline-flex;}
-  #zoneF .mnav-group{display:inline-flex; align-items:center; gap:6px; flex:none;}
-  #zoneF .spacer{flex:1 1 auto; min-width:8px;}
-  #zoneF .sel{max-width:96px;}
+  #zoneF .mnav-group{display:inline-flex; align-items:center; gap:4px; flex:none;}
+  #zoneF .spacer{flex:1 1 auto; min-width:4px;}
+  #zoneF .sel{max-width:88px; flex-shrink:1; min-width:0; padding:4px 6px;}
   /* Row 2: the current directory name, centered and emphasized. */
   #zoneF .mtitle-row{
     display:flex; align-items:center; flex:1 1 auto;
@@ -688,6 +694,31 @@ function fancySize(n){
 
 function applyThumbSize(){
   document.documentElement.style.setProperty('--thumb-h', state.thumbSize + 'px');
+}
+
+// Mobile header icon bar: measure the natural (unclamped) width of the row
+// and, when it overflows the viewport, scale it down with a transform so that
+// every control stays visible no matter how small the phone is. The layout
+// width is clamped to the bar's client width before measuring so a previously
+// applied scale does not bias the natural-width reading.
+function fitMobileBar(){
+  var bar = document.querySelector('#zoneF .mbar');
+  if (!bar || !isMobile()){
+    if (bar) bar.style.transform = '';
+    return;
+  }
+  var avail = bar.parentElement.clientWidth;
+  if (!avail) return;
+  bar.style.width = avail + 'px';   // clamp layout width so the measurement below is natural
+  var nat = bar.scrollWidth;        // overflow-x:visible -> reports the full natural content width
+  if (nat > avail){
+    var s = avail / nat;
+    bar.style.transformOrigin = 'left center';
+    bar.style.transform = 'scale(' + s + ')';
+  } else {
+    bar.style.transform = '';
+  }
+  bar.style.width = '';
 }
 
 // Resolution we request from the server (2x the displayed size for HiDPI sharpness).
