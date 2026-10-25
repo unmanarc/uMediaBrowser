@@ -49,6 +49,7 @@ Simple command line web server that comes with:
 - TLS (https) Support
 - On-the-fly tar.gz generation
 - Command/Scripts execution (like cgi-bin)
+- Web file manager UI with [keyboard shortcuts](shortcuts.md)
 
 ### Use Cases:
 
