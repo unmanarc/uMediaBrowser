@@ -77,7 +77,7 @@ body{
 #selActions .btn{min-width:110px; justify-content:center;}
 #detailContent h3{margin:0 0 12px; font-size:14px; word-break:break-all;}
 #detailContent .d-thumb{display:flex; justify-content:center; margin-bottom:12px;}
-#detailContent .d-thumb img{max-width:100%; max-height:260px; border-radius:8px; object-fit:contain;}
+#detailContent .d-thumb img{max-width:100%; max-height:260px; border-radius:8px; object-fit:contain; cursor:pointer;}
 #detailContent table{width:100%; border-collapse:collapse; font-size:12.5px;}
 #detailContent td{padding:5px 0; vertical-align:top;}
 #detailContent td.k{color:var(--fg-dim); padding-right:12px; white-space:nowrap; width:38%;}
@@ -1170,6 +1170,8 @@ function renderDetail(){
       if (r && r.ok && r.data && r.data.b64)
         img.src = 'data:' + (r.data.mime || 'image/png') + ';base64,' + r.data.b64;
     });
+    // Click on the detail thumbnail opens the album (same as the gallery button).
+    img.addEventListener('click', function(){ $('#btnAlbum').click(); });
     dt.appendChild(img);
     zoneE.appendChild(dt);
   }
