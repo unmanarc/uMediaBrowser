@@ -48,10 +48,10 @@ Status::Code WebClientHdlr::action_ls()
     data["has_parent"] = (parent != "/");
 
     Json::Value flags;
-    flags["uploads"] = webClientParameters.uploads;
-    flags["overwrite"] = webClientParameters.overwrite;
-    flags["targz"] = webClientParameters.targz;
-    flags["execute"] = webClientParameters.execute;
+    flags["can-upload"] = webClientParameters.canUpload;
+    flags["can-overwrite"] = webClientParameters.canOverwrite;
+    flags["can-archive"] = webClientParameters.canArchive;
+    flags["can-execute"] = webClientParameters.canExecute;
     flags["version"] = webClientParameters.softwareVersion;
     data["flags"] = flags;
 
