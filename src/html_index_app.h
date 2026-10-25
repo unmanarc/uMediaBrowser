@@ -615,7 +615,7 @@ document.addEventListener('keydown', function(e){
 });
 
 function isImage(name){
-  return /\.(png|jpe?g|gif|bmp|webp|svg|tiff?|ico)$/i.test(name);
+  return /\.(png|jpe?g|gif|bmp|webp|svg|tiff?|ico|arw|cr2|cr3|nef|orf|dng|pef|raf)$/i.test(name);
 }
 
 function ext(name){
@@ -820,7 +820,7 @@ function renderFiles(){
       thumb.innerHTML = '<i class=\"ic ic-up\"></i>';
     } else if (it.type === 'dir'){
       thumb.innerHTML = '<i class=\"ic ic-folder\"></i>';
-    } else if (isImage(it.name)){
+    } else if (isImage(it.name) || isVideo(it.name)){
       var full = itemPath(it.name);
       var key = full + '@' + thumbFetchSize();
       var img = document.createElement('img');
@@ -1058,7 +1058,7 @@ function renderDetail(){
   var h = document.createElement('h3'); h.textContent = name;
   zoneE.appendChild(h);
 
-  var isImg = (it.type === 'file' && isImage(it.name));
+  var isImg = (it.type === 'file' && (isImage(it.name) || isVideo(it.name)));
 
   var dt = null;
   if (isImg){
