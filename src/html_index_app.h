@@ -646,7 +646,10 @@ function sortItems(items){
 }
 
 function currentPathFromHash(){
-  return normPath(decodeURIComponent(location.hash.replace(/^#/, '')));
+  var p = normPath(decodeURIComponent(location.hash.replace(/^#/, '')));
+  var target = '#' + encodeURIComponent(p);
+  if (location.hash !== target) history.replaceState(null, '', target);
+  return p;
 }
 
 function normPath(p){
@@ -1455,6 +1458,7 @@ function bind(){
   setView('grid');
   await loadTree('/');
   loadDir(currentPathFromHash());
+  if (!location.hash) history.replaceState(null, '', '#' + encodeURIComponent(state.path || '/'));
 })();
 </script>
 </body>
