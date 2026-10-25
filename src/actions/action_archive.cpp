@@ -17,6 +17,56 @@ using namespace Mantids30::Network::Protocol::HTTP;
 using namespace Mantids30::Memory::Streams;
 using namespace Mantids30::Helpers;
 
+namespace
+{
+    // Reduce a name to a safe set of characters for use in a download
+    // filename. Keeps [A-Za-z0-9._-], collapses runs of dots (never '..'),
+    // strips leading dots/dashes and trailing dots, and caps the length.
+    std::string sanitizeName(const std::string &in)
+    {
+        std::string out;
+        out.reserve(in.size());
+        for (char c : in)
+        {
+            if (isalnum((unsigned char) c) || c == '.' || c == '_' || c == '-')
+            {
+                if (c == '.')
+                {
+                    // Avoid ".." and a leading dot.
+                    if (!out.empty() && out.back() == '.')
+                        continue;
+                    if (out.empty())
+                        continue;
+                }
+                out.push_back(c);
+            }
+        }
+        while (!out.empty() && (out.back() == '.' || out.back() == '-'))
+            out.pop_back();
+        if (out.size() > 80)
+            out.resize(80);
+        while (!out.empty() && (out.back() == '.' || out.back() == '-'))
+            out.pop_back(); // trimming may have re-exposed a trailing dot
+        return out;
+    }
+
+    // Longest character-wise common prefix of every entry in the list.
+    std::string commonPrefix(const std::vector<std::string> &names)
+    {
+        if (names.empty())
+            return {};
+        std::string pref = names[0];
+        for (std::size_t i = 1; i < names.size() && !pref.empty(); ++i)
+        {
+            std::size_t n = 0;
+            while (n < pref.size() && n < names[i].size() && pref[n] == names[i][n])
+                ++n;
+            pref.resize(n);
+        }
+        return pref;
+    }
+}
+
 Status::Code WebClientHdlr::action_archive()
 {
     if (!webClientParameters.canArchive)
@@ -118,7 +168,29 @@ Status::Code WebClientHdlr::action_archive()
 
     serverResponse.contentType = "application/octet-stream";
 
-    const std::string downloadName = "archive." + ext;
+    // Derive the download name from the selected items instead of a fixed
+    // "archive": a single item is named after itself (extension dropped);
+    // multiple items share their longest common prefix. Anything that is not
+    // a safe filename falls back to "archive".
+    std::string baseName;
+    if (bases.size() == 1)
+        baseName = sanitizeName(bases[0]);
+    else
+    {
+        std::vector<std::string> san;
+        san.reserve(bases.size());
+        for (const std::string &b : bases)
+            san.push_back(sanitizeName(b));
+        baseName = sanitizeName(commonPrefix(san));
+        // A prefix that is empty, too short, or ends in a dot would produce a
+        // poor download name; fall back to the generic one.
+        if (baseName.empty() || baseName.size() < 3)
+            baseName.clear();
+    }
+    if (baseName.empty())
+        baseName = "archive";
+
+    const std::string downloadName = baseName + "." + ext;
     serverResponse.headers.replace("Content-Disposition", "attachment; filename=\"" + downloadName + "\"");
 
     if (spawner->spawnProcess(true, false))
