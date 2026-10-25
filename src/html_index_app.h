@@ -963,6 +963,15 @@ function renderFiles(){
 // image can be wider than the placeholder it replaces.
 function measureGridWidths(){
   if (state.view !== 'grid') return;
+  //
+  // Before measuring we must clear the previously forced inline width on every
+  // card: otherwise the forced width clamps offsetWidth and the measurement is
+  // stuck at the (possibly too-small) value from the last run. Temporarily
+  // restore width:max-content, read the natural widths, then re-apply the new
+  // maximum.
+  // Clear the previously locked width so each card reports its natural
+  // max-content width (thumbnail may have loaded since the last measurement).
+  items.forEach(function(el){ el.style.width = ''; });
   var items = $$('#filesGrid .item');
   if (!items.length) return;
   var max = 0;
