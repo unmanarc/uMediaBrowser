@@ -53,11 +53,13 @@ body{
   border:1px solid var(--border); border-radius:6px; padding:6px 10px; font:inherit;
 }
 
-/* ----- F: status bar ----- */
+/* ----- F: status bar (becomes the top header in the phone view) ----- */
 #zoneF{
   display:flex; justify-content:flex-end; align-items:center; gap:8px;
   padding:0 10px; background:var(--panel); border-top:1px solid var(--border);
 }
+/* Up/Refresh/Back buttons only exist in the phone header; hidden on desktop. */
+#zoneF .mnav{display:none;}
 
 /* ----- B + D + E ----- */
 #zoneMid{display:grid; grid-template-columns:260px 1fr 300px; min-height:0;}
@@ -184,24 +186,29 @@ i.ic-album{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 #filesGrid.view-list .item .meta span{min-width:70px;}
 #emptyMsg{padding:40px; text-align:center; color:var(--fg-dim);}
 
-/* ----- mobile (phone) view: only the file view (D) and the status bar (F)
-   are kept. Header (A), location bar (C), tree (B) and details (E) are hidden
-   and navigation is done through the ".." entry in the file list. ----- */
+/* ----- mobile (phone) view -----
+   The status bar (F) becomes a fixed top header with Up / Refresh / Back
+   buttons; the file view (D) fills the rest. Header (A), location bar (C),
+   tree (B) and details (E) are hidden. The ".." entry is no longer rendered
+   in the list: navigation is done through the header buttons. ----- */
 @media (max-width: 640px), (max-height: 520px) {
-  #app{grid-template-rows:auto 1fr 48px;}
+  #app{grid-template-rows:48px 1fr;}
   #zoneA, #zoneC, #zoneB, #zoneE{display:none !important;}
   #zoneMid{display:block;}
   #zoneD{padding:8px;}
-  #zoneF{min-height:48px; gap:6px; padding:0 8px; overflow-x:auto;}
+  /* F moves to the top row and becomes the header */
+  #zoneF{
+    order:-1; flex:0 0 48px; height:48px;
+    border-top:none; border-bottom:1px solid var(--border);
+    gap:6px; padding:0 8px; overflow-x:auto;
+  }
+  #zoneF .mnav{display:inline-flex;}
+  #zoneF .mnav-group{display:inline-flex; align-items:center; gap:6px; flex:none;}
+  #zoneF .spacer{flex:1 1 auto; min-width:8px;}
   #zoneF .sel{max-width:96px;}
   .item{padding:12px 8px;}
   .item .name{font-size:13px; -webkit-line-clamp:3;}
   #filesGrid.view-grid .item .thumb i.ic{width:calc(var(--thumb-h) - 6px); height:calc(var(--thumb-h) - 6px);}
-  .item.is-updir{
-    flex-direction:row; justify-content:flex-start; align-items:center; gap:10px;
-    width:100%; background:var(--panel); border-color:var(--border);
-  }
-  .item.is-updir .name{white-space:nowrap; font-weight:600;}
 }
 
 /* context menu */
@@ -331,8 +338,14 @@ i.ic-album{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     </aside>
   </div>
 
-  <!-- F: status bar -->
+  <!-- F: status bar (becomes the top header in the phone view) -->
   <footer id="zoneF">
+    <span class="mnav-group">
+      <button class="btn icon mnav" id="btnMUp" title="Up"><i class="ic ic-up"></i></button>
+      <button class="btn icon mnav" id="btnMRefresh" title="Refresh"><i class="ic ic-refresh"></i></button>
+      <button class="btn icon mnav" id="btnMBack" title="Back"><i class="ic ic-back"></i></button>
+    </span>
+    <span class="spacer"></span>
     <button class="btn icon" id="btnGrid" title="Grid view"><i class="ic ic-grid"></i></button>
     <button class="btn icon" id="btnList" title="List view"><i class="ic ic-list"></i></button>
     <button class="btn icon" id="btnAlbum" title="Album view"><i class="ic ic-album"></i></button>
@@ -393,15 +406,21 @@ i.ic-album{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 var $ = function(s, r){ return (r||document).querySelector(s); };
 var $$ = function(s, r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); };
 
-// Phone view (CSS media query hides the header/location/tree/details panels):
-// only the central view and the footer remain.
+// Phone view (CSS media query hides the header/location/tree/details panels
+// and turns the footer into a top header with Up/Refresh/Back buttons).
 var mqlMobile = window.matchMedia('(max-width: 640px), (max-height: 520px)');
 function isMobile(){ return mqlMobile.matches; }
-// Re-render when the viewport crosses the phone breakpoint so the ".." entry
-// appears/disappears and the panels show/hide without a manual navigation.
-function onMobileBreakpointChange(){ renderFiles(); }
+// Re-render when the viewport crosses the phone breakpoint so the panels
+// show/hide and the header buttons appear/disappear without a manual navigation.
+function onMobileBreakpointChange(){ renderFiles(); renderToolbar(); }
 if (mqlMobile.addEventListener) mqlMobile.addEventListener('change', onMobileBreakpointChange);
 else if (mqlMobile.addListener) mqlMobile.addListener(onMobileBreakpointChange);
+
+// Navigation history for the mobile "Back" button (independent of the browser
+// history, which is driven by the URL hash).
+var navHistory = [];   // normalised paths, oldest -> newest
+var navIndex = -1;     // index into navHistory of the current path
+var navSuppressed = false; // true while a back/forward step is in flight
 
 function getCookie(name){
   var m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
@@ -676,6 +695,21 @@ function navigate(path){
   else location.hash = encodeURIComponent(path);
 }
 
+// Step back in the app's own navigation history (mobile "Back" button).
+function goBack(){
+  if (navIndex <= 0) return;
+  navIndex--;
+  navSuppressed = true;   // don't re-push this path onto the history
+  navigate(navHistory[navIndex]);
+}
+
+// Enable/disable the mobile header navigation buttons.
+function updateNavButtons(){
+  var up = $('#btnMUp'), back = $('#btnMBack');
+  if (up)   up.disabled   = !state.has_parent;
+  if (back) back.disabled = (navIndex <= 0);
+}
+
 async function loadDir(path){
   state.path = path;
   state.selected = [];
@@ -697,6 +731,21 @@ async function loadDir(path){
   };
   state.upload_here = r.data.upload_here !== false;
   state.has_parent = !!r.data.has_parent;
+
+  // Record the navigation history (drives the mobile "Back" button).
+  var norm = normPath(r.data.path || path);
+  var isBackStep = navSuppressed;
+  if (!isBackStep){
+    // Truncate any forward entries, then push (unless we're already there).
+    if (navHistory[navIndex] !== norm){
+      navHistory.length = navIndex + 1;
+      navHistory.push(norm);
+      navIndex = navHistory.length - 1;
+    }
+  }
+  navSuppressed = false;
+  updateNavButtons();
+
   renderPath(r.data.path, r.data.parent);
   renderToolbar();
   renderFiles();
@@ -807,28 +856,18 @@ function renderFiles(){
   grid.innerHTML = '';
   var q = state.filter.toLowerCase();
 
-  // In the phone view the location bar is hidden, so add a ".." entry to
-  // allow navigating back to the parent directory.
-  var updir = null;
-  if (isMobile() && state.has_parent && !q){
-    updir = { name:'..', type:'dir' };
-  }
   var items = sortItems(state.items.filter(function(it){ return !q || it.name.toLowerCase().indexOf(q) >= 0; }));
-  $('#emptyMsg').style.display = (items.length || updir) ? 'none' : 'block';
-
-  if (updir) items = [updir].concat(items);
+  $('#emptyMsg').style.display = items.length ? 'none' : 'block';
 
   items.forEach(function(it){
     var el = document.createElement('div');
-    el.className = 'item' + (it.type === 'dir' ? ' is-dir' : ' is-file') + (isSelected(it.name) ? ' selected' : '') + (it.name === '..' ? ' is-updir' : '');
+    el.className = 'item' + (it.type === 'dir' ? ' is-dir' : ' is-file') + (isSelected(it.name) ? ' selected' : '');
     el.dataset.name = it.name;
 
     var thumb = document.createElement('div');
     thumb.className = 'thumb';
-    if (it.name === '..'){
-      thumb.innerHTML = '<i class=\"ic ic-up\"></i>';
-    } else if (it.type === 'dir'){
-      thumb.innerHTML = '<i class=\"ic ic-folder\"></i>';
+    if (it.type === 'dir'){
+      thumb.innerHTML = '<i class="ic ic-folder"></i>';
     } else if (isImage(it.name) || isVideo(it.name)){
       var full = itemPath(it.name);
       var key = full + '@' + thumbFetchSize();
@@ -870,13 +909,18 @@ function renderFiles(){
 
     el.addEventListener('click', function(ev){
       if (ev.shiftKey){ selectRange(it.name, ev); return; }
-      if (it.name === '..'){ navigate(upPath()); return; }
+      if (isMobile()){
+        // Single tap opens the item and shows the context menu directly.
+        select(it.name, false);
+        showCtxMenu(ev.clientX, ev.clientY);
+        openItem(it.name);
+        return;
+      }
       select(it.name, ev.ctrlKey || ev.metaKey);
     });
     el.addEventListener('dblclick', function(){ openItem(it.name); });
     el.addEventListener('contextmenu', function(ev){
       ev.preventDefault();
-      if (it.name === '..'){ hideCtx(); return; }
       if (!isSelected(it.name)) select(it.name, false);
       showCtxMenu(ev.clientX, ev.clientY);
     });
@@ -1460,6 +1504,10 @@ function bind(){
   $('#btnUpload').onclick = doUpload;
   $('#btnDownload').onclick = doDownloadSelected;
   $('#btnDelete').onclick = doDeleteSelected;
+  // Mobile header navigation buttons (hidden on desktop).
+  $('#btnMUp').onclick = function(){ if (state.has_parent) navigate(upPath()); };
+  $('#btnMRefresh').onclick = doRefresh;
+  $('#btnMBack').onclick = goBack;
   $('#btnGrid').onclick = function(){ setView('grid'); };
   $('#btnList').onclick = function(){ setView('list'); };
   $('#btnAlbum').onclick = function(){ openAlbum(); };
