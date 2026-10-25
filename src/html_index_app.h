@@ -168,6 +168,8 @@ i.ic-album{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 }
 .item:hover{background:#161d26;}
 .item.selected{background:#1e3a5f; border-color:var(--accent);}
+.item.active{border-color:var(--accent2); background:#182433;}
+.item.selected.active{background:#1e3a5f; border-color:var(--accent2);}
 .item .thumb{display:flex; align-items:center; justify-content:center; border-radius:6px; flex:none;}
 .item .thumb img{display:block;}
 /* list view thumbnails = square sized by the selected icon size */
@@ -498,7 +500,8 @@ var state = {
   sortDir: 'asc',
   thumbSize: 72,
   selected: [],   // array of names
-  items: []
+  items: [],
+  activeIndex: -1  // index into visibleNames() for keyboard cursor
 };
 var treeCache = {};   // path -> nodes[]
 var expanded = {};    // path -> true
@@ -779,6 +782,7 @@ function updateNavButtons(){
 async function loadDir(path){
   state.path = path;
   state.selected = [];
+  state.activeIndex = -1;
   // The album list is cached from state.items; drop it whenever the
   // directory changes, otherwise the album keeps the previous folder's
   // media (wrong count) and builds URLs with the new path + old names
@@ -1025,6 +1029,8 @@ function renderFiles(){
   });
 
   if (state.view === 'grid') measureGridWidths();
+  clampActiveIndex();
+  updateActiveClass();
   scheduleThumbs();
 }
 
@@ -1112,6 +1118,7 @@ function select(name, additive){
   } else {
     state.selected = [name];
   }
+  syncActiveFromSelection();
   updateSelectionButtons();
   renderFiles();
   renderDetail();
@@ -1159,6 +1166,7 @@ function selectRange(name, ev){
       state.selected = state.selected.concat(rangeNames(anchorName, name).filter(function(n){ return state.selected.indexOf(n) < 0; }));
     }
   }
+  syncActiveFromSelection();
   applySelectionClass();
   renderDetail();
 }
@@ -1614,6 +1622,217 @@ function bindDropUpload(){
   });
 }
 
+// ---------------- KEYBOARD SHORTCUTS (PC mode only) ----------------
+// The keyboard cursor (activeIndex) points into visibleNames(). Arrow keys
+// move it; Enter opens; Space toggles selection; Delete removes; etc.
+// On mobile the handler returns early so nothing interferes.
+
+function visibleNamesForActive(){
+  var q = state.filter.toLowerCase();
+  return state.items.filter(function(it){ return !q || it.name.toLowerCase().indexOf(q) >= 0; })
+    .map(function(it){ return it.name; });
+}
+
+function clampActiveIndex(){
+  var names = visibleNamesForActive();
+  if (state.activeIndex < 0 || state.activeIndex >= names.length)
+    state.activeIndex = names.length ? 0 : -1;
+}
+
+function syncActiveFromSelection(){
+  if (state.selected.length){
+    var names = visibleNamesForActive();
+    var anchor = state.selected[state.selected.length - 1];
+    var idx = names.indexOf(anchor);
+    if (idx >= 0) state.activeIndex = idx;
+    else { var first = names.indexOf(state.selected[0]); if (first >= 0) state.activeIndex = first; }
+  }
+}
+
+function updateActiveClass(){
+  var names = visibleNamesForActive();
+  var activeName = state.activeIndex >= 0 ? names[state.activeIndex] : null;
+  $$('#filesGrid .item').forEach(function(el){
+    el.classList.toggle('active', el.dataset.name === activeName);
+  });
+}
+
+function moveActive(dir, ev){
+  var names = visibleNamesForActive();
+  if (!names.length) return;
+  var next = state.activeIndex + dir;
+  if (next < 0) next = 0;
+  if (next >= names.length) next = names.length - 1;
+  state.activeIndex = next;
+  var name = names[state.activeIndex];
+  if (ev && ev.shiftKey){
+    var anchorName = state.selected.length ? state.selected[state.selected.length - 1] : name;
+    state.selected = rangeNames(anchorName, name);
+  } else if (ev && (ev.ctrlKey || ev.metaKey)){
+    var i = state.selected.indexOf(name);
+    if (i >= 0) state.selected.splice(i, 1);
+    else state.selected.push(name);
+  } else {
+    state.selected = [name];
+  }
+  applySelectionClass();
+  renderDetail();
+  updateActiveClass();
+  var el = document.querySelector('#filesGrid .item[data-name="' + CSS.escape(name) + '"]');
+  if (el) el.scrollIntoView({ block: 'nearest' });
+}
+
+function bindKeyboard(){
+  document.addEventListener('keydown', function(e){
+    if (albumOpen()) return;
+    var tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
+    if (isMobile()) return;
+
+    var ctrl = e.ctrlKey || e.metaKey;
+    var shift = e.shiftKey;
+    var key = e.key;
+
+    if (key === 'ArrowDown' || key === 'ArrowRight'){
+      e.preventDefault();
+      moveActive(1, e);
+      return;
+    }
+    if (key === 'ArrowUp' || key === 'ArrowLeft'){
+      e.preventDefault();
+      moveActive(-1, e);
+      return;
+    }
+
+    if (key === 'Enter'){
+      var names = visibleNamesForActive();
+      if (state.activeIndex >= 0 && names[state.activeIndex]){
+        e.preventDefault();
+        openItem(names[state.activeIndex]);
+      }
+      return;
+    }
+
+    if (key === ' '){
+      e.preventDefault();
+      var nm = visibleNamesForActive();
+      if (state.activeIndex >= 0 && nm[state.activeIndex]){
+        var name = nm[state.activeIndex];
+        var i = state.selected.indexOf(name);
+        if (i >= 0) state.selected.splice(i, 1);
+        else state.selected.push(name);
+        applySelectionClass();
+        renderDetail();
+      }
+      return;
+    }
+
+    if (key === 'Delete' || key === 'Backspace'){
+      e.preventDefault();
+      if (state.selected.length && state.flags.canOverwrite){
+        doDeleteSelected();
+      } else if (key === 'Backspace' && !state.selected.length){
+        navigate(upPath());
+      }
+      return;
+    }
+
+    if (key === 'Home'){
+      e.preventDefault();
+      var names0 = visibleNamesForActive();
+      if (names0.length){
+        state.activeIndex = 0;
+        state.selected = [names0[0]];
+        applySelectionClass();
+        renderDetail();
+        updateActiveClass();
+        var el0 = document.querySelector('#filesGrid .item[data-name="' + CSS.escape(names0[0]) + '"]');
+        if (el0) el0.scrollIntoView({ block: 'start' });
+      }
+      return;
+    }
+
+    if (key === 'End'){
+      e.preventDefault();
+      var namesE = visibleNamesForActive();
+      if (namesE.length){
+        state.activeIndex = namesE.length - 1;
+        state.selected = [namesE[state.activeIndex]];
+        applySelectionClass();
+        renderDetail();
+        updateActiveClass();
+        var elE = document.querySelector('#filesGrid .item[data-name="' + CSS.escape(namesE[state.activeIndex]) + '"]');
+        if (elE) elE.scrollIntoView({ block: 'end' });
+      }
+      return;
+    }
+
+    if (ctrl && (key === 'a' || key === 'A')){
+      e.preventDefault();
+      state.selected = visibleNamesForActive().slice();
+      applySelectionClass();
+      renderDetail();
+      return;
+    }
+
+    if (ctrl && shift && (key === 'd' || key === 'D')){
+      e.preventDefault();
+      if (state.selected.length && state.flags.canArchive) doArchive('tar.gz');
+      return;
+    }
+
+    if (ctrl && (key === 'd' || key === 'D')){
+      e.preventDefault();
+      if (state.selected.length) doDownloadSelected();
+      return;
+    }
+
+    if (ctrl && (key === 'x' || key === 'X')){
+      e.preventDefault();
+      if (state.selected.length && state.flags.canArchive) doArchive('zip');
+      return;
+    }
+
+    if (ctrl && (key === 'l' || key === 'L')){
+      e.preventDefault();
+      $('#pathInput').focus();
+      $('#pathInput').select();
+      return;
+    }
+  });
+
+  // Single-key shortcuts (no modifiers) get a second listener so the
+  // Ctrl/Shift combinations above can short-circuit them cleanly.
+  document.addEventListener('keydown', function(e){
+    if (albumOpen()) return;
+    var tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
+    if (isMobile()) return;
+    if (e.ctrlKey || e.metaKey || e.shiftKey) return;
+
+    var names;
+    switch (e.key){
+      case 'r': e.preventDefault(); doRefresh(); break;
+      case 'n': e.preventDefault(); doNewFolder(); break;
+      case 'u': e.preventDefault(); doUpload(); break;
+      case 'a': e.preventDefault(); openAlbum(); break;
+      case 'f': e.preventDefault(); $('#filterInput').focus(); break;
+      case 'p': e.preventDefault(); $('#pathInput').focus(); $('#pathInput').select(); break;
+      case 'g': e.preventDefault(); setView('grid'); break;
+      case 'l': e.preventDefault(); setView('list'); break;
+      case 'F': e.preventDefault(); toggleFullscreen(); break;
+      case 'Escape':
+        hideCtx();
+        if (state.selected.length){
+          state.selected = [];
+          applySelectionClass();
+          renderDetail();
+        }
+        break;
+    }
+  });
+}
+
 // ---------------- BIND + INIT ----------------
 function upPath(){
   var p = state.path;
@@ -1674,6 +1893,7 @@ function bind(){
   window.addEventListener('hashchange', function(){ loadDir(currentPathFromHash()); });
   bindAlbum();
   bindSelection();
+  bindKeyboard();
   bindDropUpload();
 }
 
