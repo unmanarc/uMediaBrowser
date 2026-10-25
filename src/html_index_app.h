@@ -430,7 +430,7 @@ function toast(msg){
 
 var state = {
   path: '/',
-  flags: { can-upload:false, can-overwrite:false, can-archive:false, can-execute:false, version:'' },
+  flags: { canUpload:false, canOverwrite:false, canArchive:false, canExecute:false, version:'' },
   upload_here: true,
   view: 'grid',
   filter: '',
@@ -685,7 +685,16 @@ async function loadDir(path){
     return;
   }
   state.items = r.data.items || [];
-  state.flags = r.data.flags || state.flags;
+  // Normalise the kebab-case 'can-*' keys from the ls payload into the
+  // camelCase property names the rest of the UI code uses.
+  var fl = r.data.flags || state.flags;
+  state.flags = {
+    canUpload:    !!fl['can-upload'],
+    canOverwrite: !!fl['can-overwrite'],
+    canArchive:   !!fl['can-archive'],
+    canExecute:   !!fl['can-execute'],
+    version:      fl.version || ''
+  };
   state.upload_here = r.data.upload_here !== false;
   state.has_parent = !!r.data.has_parent;
   renderPath(r.data.path, r.data.parent);
