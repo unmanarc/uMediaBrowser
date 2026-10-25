@@ -1101,6 +1101,7 @@ function openItem(name){
   if (!it) return;
   if (it.type === 'dir') navigate(full);
   else if (state.flags.canExecute && it.executable) window.open('?act=exec&file=' + enc(full), '_blank');
+  else if (isMobile() && it.type === 'file' && (isImage(it.name) || isVideo(it.name))) openAlbum(it.name);
   else window.open('?act=download&file=' + enc(full), '_blank');
 }
 
