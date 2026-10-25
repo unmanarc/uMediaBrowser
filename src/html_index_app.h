@@ -1,14 +1,23 @@
 #pragma once
 
-// Single-file modern GUI: vanilla HTML5 + CSS + JS, no external libraries.
-// All icons are inlined as data: URIs. Served for GET / (no act).
-static constexpr const char *HTML_APP = R"uSWAPP(
+#include <string>
+#include <boost/algorithm/string/replace.hpp>
+#include <Mantids30/Helpers/encoders.h>
+
+// Build the HTML page with a custom title.
+// If appTitle is empty, defaults to "Unmanarc Simple Web Server 3".
+inline std::string buildHTMLApp(const std::string &appTitle)
+{
+    const std::string title = appTitle.empty() ? "Unmanarc Simple Web Server 3" : appTitle;
+    const std::string escaped = Mantids30::Helpers::Encoders::htmlEscape(title);
+
+    static const std::string rawHTML = R"uSWAPP(
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Files</title>
+<title>__APP_TITLE__</title>
 <style>
 :root{
   --bg:#0e1116; --panel:#151a21; --panel2:#1c232c; --border:#27303b;
@@ -283,7 +292,7 @@ i.ic-album{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 <div id="app">
   <!-- A -->
   <header id="zoneA">
-    <span class="brand">uSW3</span>
+    <span class="brand">__APP_TITLE__</span>
     <span style="flex:1"></span>
     <button class="btn icon" id="btnFullscreen" title="Fullscreen"><i class="ic ic-fullscreen"></i></button>
   </header>
@@ -1451,3 +1460,8 @@ function bind(){
 </body>
 </html>
 )uSWAPP";
+
+    std::string html = rawHTML;
+    boost::replace_all(html, "__APP_TITLE__", escaped);
+    return html;
+}

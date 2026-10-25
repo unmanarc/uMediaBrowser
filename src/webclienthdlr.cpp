@@ -211,7 +211,7 @@ Status::Code WebClientHdlr::onHTTPClientContentReceived()
     if (method == "GET")
     {
         serverResponse.contentType = "text/html; charset=UTF-8";
-        getResponseContentStreamableObject()->writeString(HTML_APP);
+        getResponseContentStreamableObject()->writeString(buildHTMLApp(webClientParameters.appTitle));
         return respond(HTTP::Status::Code::S_200_OK, clientRequest.getURI().c_str());
     }
 

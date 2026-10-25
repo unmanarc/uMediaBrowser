@@ -27,6 +27,7 @@ struct webClientParams
     std::string uploadDirBase;
     std::string remoteIP;
     bool uploadOK;
+    std::string appTitle;
 
 };
 
