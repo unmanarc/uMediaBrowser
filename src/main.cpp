@@ -73,6 +73,7 @@ public:
         globalArguments->addCommandLineOption("HTTP Security", 'p', "passfile", "HTTP User/Pass File", "", Memory::Abstract::Var::Type::STRING);
 
         globalArguments->addCommandLineOption("Other Options", 's', "sys", "Journalctl Log Mode (don't print colors or dates)", "false", Memory::Abstract::Var::Type::BOOL);
+        globalArguments->addCommandLineOption("Other Options", 'd', "debug", "Verbose debug logging (full URIs, per-entry detail)", "false", Memory::Abstract::Var::Type::BOOL);
 
 #ifdef WITH_SSL_SUPPORT
         globalArguments
@@ -88,6 +89,7 @@ public:
         Mantids30::Network::Sockets::Socket_TLS::prepareTLS();
 #endif
         bool configUseFancy = !globalArguments->getCommandLineOptionBooleanValue("sys");
+        const bool debugMode = globalArguments->getCommandLineOptionBooleanValue("debug");
         fprintf(stderr, "# Arguments: %s\n", globalArguments->getCurrentProgramOptionsValuesAsBashLine().c_str());
 
         log = new Logs::AppLog();
@@ -97,6 +99,7 @@ public:
         log->enableColorLogging = configUseFancy;
         log->enableDateLogging = configUseFancy;
         log->moduleFieldMinWidth = 36;
+        log->setDebug(debugMode);
 
         webClientParameters.rpcLog = new Logs::RPCLog();
         webClientParameters.rpcLog->enableEmptyFieldLogging = false;
@@ -105,6 +108,7 @@ public:
         webClientParameters.rpcLog->enableColorLogging = configUseFancy;
         webClientParameters.rpcLog->enableDateLogging = configUseFancy;
         webClientParameters.rpcLog->moduleFieldMinWidth = 36;
+        webClientParameters.rpcLog->setDebug(debugMode);
 
         std::string passFile = globalArguments->getCommandLineOptionValue("passfile")->toString();
 
@@ -139,6 +143,7 @@ public:
         webClientParameters.targz = globalArguments->getCommandLineOptionBooleanValue("targz");
         webClientParameters.uploads = globalArguments->getCommandLineOptionBooleanValue("uploads");
         webClientParameters.overwrite = globalArguments->getCommandLineOptionBooleanValue("overwrite");
+        webClientParameters.debug = globalArguments->getCommandLineOptionBooleanValue("debug");
         webClientParameters.appTitle = globalArguments->getCommandLineOptionValue("title")->toString();
 
         bool configUseIPv4 = globalArguments->getCommandLineOptionBooleanValue("ipv4");
@@ -229,6 +234,14 @@ public:
 
         log->log0(__func__, Logs::INFO, "Web Server Loaded @%s:%" PRIu16, listenAddress.c_str(), listenPort);
         log->log0(__func__, Logs::INFO, "Document root: %s", rp.c_str());
+        log->log0(__func__, Logs::INFO, "Features: uploads=%d overwrite=%d targz=%d execute=%d",
+                  webClientParameters.uploads,
+                  webClientParameters.overwrite,
+                  webClientParameters.targz,
+                  webClientParameters.execute);
+        log->log0(__func__, Logs::INFO, "Auth: %s | Debug logging: %s",
+                  webClientParameters.pass.empty() ? "disabled" : "basic",
+                  webClientParameters.debug ? "enabled" : "disabled");
 
         return 0;
     }
@@ -285,6 +298,11 @@ void USimpleWebServer::_callbackOnConnect(void *obj, const std::shared_ptr<Netwo
     char inetAddr[INET6_ADDRSTRLEN];
     s->getRemotePair(inetAddr);
 
+    webServer->log->log1("web", inetAddr, Logs::INFO, "C/CONNECT: %s%s%s",
+                         inetAddr,
+                         isSecure ? " [TLS]" : "",
+                         tlsCN.empty() ? "" : (" CN=" + tlsCN).c_str());
+
     webHandler->clientRequest.networkClientInfo.setClientInformation(inetAddr, isSecure, tlsCN);
     webHandler->setWebClientParameters(webServer->getWebClientParameters());
 
@@ -293,10 +311,18 @@ void USimpleWebServer::_callbackOnConnect(void *obj, const std::shared_ptr<Netwo
     webHandler->parseObject(&err);
 }
 
-void USimpleWebServer::_callbackOnInitFailed(void *, const std::shared_ptr<Network::Sockets::Socket_Stream> &) {}
-
-void USimpleWebServer::_callbackOnTimeOut(void *, const std::shared_ptr<Network::Sockets::Socket_Stream> &s)
+void USimpleWebServer::_callbackOnInitFailed(void *obj, const std::shared_ptr<Network::Sockets::Socket_Stream> &s)
 {
+    char inetAddr[INET6_ADDRSTRLEN];
+    s->getRemotePair(inetAddr);
+    ((USimpleWebServer *) obj)->log->log1("web", inetAddr, Logs::WARNING, "C/INIT-FAIL: protocol initialization failed (eg. bad TLS handshake)");
+}
+
+void USimpleWebServer::_callbackOnTimeOut(void *obj, const std::shared_ptr<Network::Sockets::Socket_Stream> &s)
+{
+    char inetAddr[INET6_ADDRSTRLEN];
+    s->getRemotePair(inetAddr);
+    ((USimpleWebServer *) obj)->log->log1("web", inetAddr, Logs::WARNING, "C/TIMEOUT: no request received in time, all thread queues saturated, sending 503");
     s->writeString(HTML_503_RESPONSE);
 }
 
