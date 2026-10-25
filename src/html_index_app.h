@@ -81,6 +81,7 @@ body{
 #detailContent td.k{color:var(--fg-dim); padding-right:12px; white-space:nowrap; width:38%;}
 #detailContent td.v{word-break:break-word;}
 #detailContent .exif h2{margin:16px 0 8px; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--fg-dim);}
+#detailContent h2.dirinfo{margin:16px 0 8px; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--fg-dim);}
 #detailContent .empty{color:var(--fg-dim); font-size:13px; text-align:center; padding:40px 0;}
 #zoneB{
   background:var(--panel); border-right:1px solid var(--border);
@@ -622,6 +623,15 @@ function ext(name){
   return i > 0 ? name.slice(i + 1).toLowerCase() : '';
 }
 
+// Human-readable size (same B/kB/MB/GB/TB scheme as the server's getFancySize).
+function fancySize(n){
+  var names = ['B', 'kB', 'MB', 'GB', 'TB'];
+  var pos = 0;
+  n = Math.max(0, Math.floor(n));
+  while (n >= 1024 && pos < 4){ pos++; n = Math.round(n / 1024); }
+  return n + names[pos];
+}
+
 function applyThumbSize(){
   document.documentElement.style.setProperty('--thumb-h', state.thumbSize + 'px');
 }
@@ -1009,13 +1019,31 @@ function addDetailRows(container, pairs, heading){
   container.appendChild(tbl);
 }
 
+// Stats of the current folder shown when nothing is selected.
+function renderFolderInfo(zoneE){
+  var items = state.items;
+  var dirs = 0, files = 0, size = 0;
+  items.forEach(function(it){
+    if (it.type === 'dir') dirs++;
+    else { files++; size += (it.size || 0); }
+  });
+  zoneE.innerHTML = '';
+  var h = document.createElement('h3'); h.textContent = 'Folder Information';
+  zoneE.appendChild(h);
+  var rows = [['Items', items.length], ['Folders', dirs], ['Files', files]];
+  if (files) rows.push(['Total size', fancySize(size) + ' (' + size + ' bytes)']);
+  var box = document.createElement('div'); box.className = 'exif dirinfo';
+  zoneE.appendChild(box);
+  addDetailRows(box, rows, 'Directory');
+}
+
 function renderDetail(){
   var zoneE = $('#detailContent');
   var mid = $('#zoneMid');
   var n = state.selected.length;
 
   // The panel is always visible, so no need to toggle has-detail class.
-  if (n === 0){ zoneE.innerHTML = '<div class="empty">No selection</div>'; return; }
+  if (n === 0){ renderFolderInfo(zoneE); return; }
   if (n > 1){
     zoneE.innerHTML = '<div class="empty">' + n + ' items selected</div>';
     return;
