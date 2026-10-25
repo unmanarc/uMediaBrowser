@@ -430,7 +430,7 @@ function toast(msg){
 
 var state = {
   path: '/',
-  flags: { uploads:false, overwrite:false, targz:false, execute:false, version:'' },
+  flags: { can-upload:false, can-overwrite:false, can-archive:false, can-execute:false, version:'' },
   upload_here: true,
   view: 'grid',
   filter: '',
@@ -718,9 +718,9 @@ function renderPath(path, parent){
 
 function renderToolbar(){
   var f = state.flags;
-  $('#btnUpload').disabled = !(f.uploads && state.upload_here);
-  $('#btnNewFolder').disabled = !(f.uploads && state.upload_here);
-  $('#btnDelete').disabled = !f.overwrite;
+  $('#btnUpload').disabled = !(f.canUpload && state.upload_here);
+  $('#btnNewFolder').disabled = !(f.canUpload && state.upload_here);
+  $('#btnDelete').disabled = !f.canOverwrite;
   updateSelectionButtons();
 }
 
@@ -996,7 +996,7 @@ function updateSelectionButtons(){
   var singleFile = (n === 1) && !!getItem(state.selected[0]) && getItem(state.selected[0]).type === 'file';
   $('#btnDownload').style.display = singleFile ? '' : 'none';
   $('#btnDownload').disabled = (!singleFile);
-  $('#btnDelete').disabled = (n === 0 || !state.flags.overwrite);
+  $('#btnDelete').disabled = (n === 0 || !state.flags.canOverwrite);
 }
 
 function openItem(name){
@@ -1004,7 +1004,7 @@ function openItem(name){
   var full = itemPath(name);
   if (!it) return;
   if (it.type === 'dir') navigate(full);
-  else if (state.flags.execute && it.executable) window.open('?act=exec&file=' + enc(full), '_blank');
+  else if (state.flags.canExecute && it.executable) window.open('?act=exec&file=' + enc(full), '_blank');
   else window.open('?act=download&file=' + enc(full), '_blank');
 }
 
@@ -1120,7 +1120,7 @@ function showCtxMenu(x, y){
   hideCtx();
   ctx.innerHTML = '';
   var n = state.selected.length;
-  var canWrite = state.flags.uploads && state.upload_here;
+  var canWrite = state.flags.canUpload && state.upload_here;
 
   if (n === 0){
     ctx.appendChild(mi('ic-newfolder', 'New folder', !canWrite, doNewFolder));
@@ -1137,19 +1137,19 @@ function showCtxMenu(x, y){
     if (n === 1 && sel0 && sel0.type === 'file')
       ctx.appendChild(mi('ic-download', 'Download', false, doDownloadSelected));
 
-    if (state.flags.targz){
+    if (state.flags.canArchive){
       ctx.appendChild(mi('ic-download', 'Archive .tar.gz', false, function(){ doArchive('tar.gz'); }));
       ctx.appendChild(mi('ic-download', 'Archive .tar', false, function(){ doArchive('tar'); }));
       ctx.appendChild(mi('ic-download', 'Archive .zip', false, function(){ doArchive('zip'); }));
     }
 
     if (n === 1){
-      if (state.flags.execute && sel0 && sel0.type === 'file' && sel0.executable){
+      if (state.flags.canExecute && sel0 && sel0.type === 'file' && sel0.executable){
         ctx.appendChild(mi('ic-file', 'Execute', false, function(){ window.open('?act=exec&file=' + enc(itemPath(state.selected[0])), '_blank'); }));
       }
     }
     ctx.appendChild(sep());
-    ctx.appendChild(mi('ic-delete', 'Delete', !state.flags.overwrite, doDeleteSelected));
+    ctx.appendChild(mi('ic-delete', 'Delete', !state.flags.canOverwrite, doDeleteSelected));
   }
 
   ctx.style.display = 'block';
@@ -1175,11 +1175,11 @@ function doArchive(fmt){
   window.location = '?act=archive&files=' + enc(files) + '&fmt=' + fmt;
 }
 function doUpload(){
-  if (!(state.flags.uploads && state.upload_here)){ toast('Uploads disabled here'); return; }
+  if (!(state.flags.canUpload && state.upload_here)){ toast('Uploads disabled here'); return; }
   $('#fileInput').click();
 }
 async function uploadFiles(fileList){
-  if (!(state.flags.uploads && state.upload_here)){ toast('Uploads disabled here'); return; }
+  if (!(state.flags.canUpload && state.upload_here)){ toast('Uploads disabled here'); return; }
   var fd = new FormData();
   for (var i=0;i<fileList.length;i++) fd.append('file', fileList[i]);
   var r = await api('?act=upload&path=' + enc(state.path), { method:'POST', body: fd });
@@ -1187,7 +1187,7 @@ async function uploadFiles(fileList){
   else toast(r && r.error ? r.error : 'Upload failed');
 }
 function doNewFolder(){
-  if (!(state.flags.uploads && state.upload_here)){ toast('Creation disabled here'); return; }
+  if (!(state.flags.canUpload && state.upload_here)){ toast('Creation disabled here'); return; }
   openDialog('New folder', [{ key:'name', placeholder:'Folder name' }], function(values){
     var name = values.name.trim();
     if (!name) return;
