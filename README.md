@@ -48,7 +48,6 @@ Lightweight web file explorer and media gallery that comes with:
 - Password Protected Authentication
 - TLS (https) Support
 - On-the-fly tar.gz generation
-- Command/Scripts execution (like cgi-bin)
 - Web file manager UI with [keyboard shortcuts](shortcuts.md)
 
 ### Use Cases:
@@ -125,7 +124,6 @@ Other Options:
 
 Server Options:
 ---------------
--x --can-execute     : Execute any eXecutable marked file and get the output, ATT: disable can-archive if you want to keep your script sources private (default: false)
 -g --can-archive     : Allow to get server directories as tar.gz files (on-the-fly) (default: false)
 -u --can-upload      : Allow file uploads (default: false)
 -o --can-overwrite   : Allow overwrite on file uploads and/or delete files (default: false)
@@ -138,10 +136,7 @@ Service Options:
 **Security Considerations:**
 
 1. HTTP Communication can be eavesdropped or tampered, if you set up an HTTP web server, at least use a layer of encryption like a VPN, TOR or something...
-2. If you want to enable the execution mode (--can-execute), please don't activate the can-archive mode, because the binary folder can be retrieved trough this method, exposing all the executable codes (moreover if you store database connection passwords in your binaries). 
-3. When execution mode is enabled, every single executable file or file marked as executable will be executed when called. Please double check what executables are behind the HTTP Document Root directory, validate the input and check that the input will not trigger command execution injections in other applications.
-4. It's not recommended to run this as root, specially with execution mode enabled.
-5. For passfile, you should create a file where the first line is the user, and the second line is the password in clear text.
+2. For passfile, you should create a file where the first line is the user, and the second line is the password in clear text.
 
 **For HTTPS Only:**  
 1. Remember to set up private signed and trusted X.509 Certificates, if not, the communication can be eavesdropped or tampered!!!

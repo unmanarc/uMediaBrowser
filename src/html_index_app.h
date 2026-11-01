@@ -492,7 +492,7 @@ function toast(msg){
 
 var state = {
   path: '/',
-  flags: { canUpload:false, canOverwrite:false, canArchive:false, canExecute:false, version:'' },
+  flags: { canUpload:false, canOverwrite:false, canArchive:false, version:'' },
   upload_here: true,
   view: 'grid',
   filter: '',
@@ -802,7 +802,6 @@ async function loadDir(path){
     canUpload:    !!fl['can-upload'],
     canOverwrite: !!fl['can-overwrite'],
     canArchive:   !!fl['can-archive'],
-    canExecute:   !!fl['can-execute'],
     version:      fl.version || ''
   };
   state.upload_here = r.data.upload_here !== false;
@@ -1189,7 +1188,6 @@ function openItem(name){
   var full = itemPath(name);
   if (!it) return;
   if (it.type === 'dir') navigate(full);
-  else if (state.flags.canExecute && it.executable) window.open('?act=exec&file=' + enc(full), '_blank');
   else if (isMobile() && it.type === 'file' && (isImage(it.name) || isVideo(it.name))) openAlbum(it.name);
   else window.open('?act=download&file=' + enc(full), '_blank');
 }
@@ -1331,11 +1329,6 @@ function showCtxMenu(x, y){
       ctx.appendChild(mi('ic-download', 'Archive .zip', false, function(){ doArchive('zip'); }));
     }
 
-    if (n === 1){
-      if (state.flags.canExecute && sel0 && sel0.type === 'file' && sel0.executable){
-        ctx.appendChild(mi('ic-file', 'Execute', false, function(){ window.open('?act=exec&file=' + enc(itemPath(state.selected[0])), '_blank'); }));
-      }
-    }
     ctx.appendChild(sep());
     ctx.appendChild(mi('ic-delete', 'Delete', !state.flags.canOverwrite, doDeleteSelected));
   }

@@ -4,7 +4,6 @@
 #include <Mantids30/Helpers/random.h>
 #include <Mantids30/Program_Logs/loglevels.h>
 #include <Mantids30/Protocol_HTTP/rsp_status.h>
-#include <boost/regex.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
 #include <stdarg.h>
@@ -237,8 +236,6 @@ Status::Code WebClientHdlr::onHTTPClientContentReceived()
         return action_thumb();
     if (act == "detail")
         return action_detail();
-    if (act == "exec")
-        return action_exec();
 
     if (method == "GET")
     {
@@ -250,12 +247,6 @@ Status::Code WebClientHdlr::onHTTPClientContentReceived()
     getResponseContentStreamableObject()->writeString(HTML_404);
     logRpc(Logs::WARNING, "R/404-NOACT: act='%s' method=%s", act.c_str(), method.c_str());
     return respond(ret, clientRequest.getURI().c_str());
-}
-
-bool WebClientHdlr::containOnlyAllowedChars(const std::string &str)
-{
-    static const boost::regex allowed("^[a-zA-Z0-9.,!@_-+=:/]*$");
-    return boost::regex_match(str, allowed);
 }
 
 std::string WebClientHdlr::getFancySize(size_t value)

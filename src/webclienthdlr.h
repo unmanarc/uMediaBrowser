@@ -14,7 +14,6 @@ struct webClientParams
 {
     webClientParams()
     {
-        canExecute = false;
         rpcLog = nullptr;
         canArchive = false;
         canUpload = false;
@@ -24,7 +23,7 @@ struct webClientParams
         useXRealIP = false;
     }
 
-    bool canExecute,canArchive,canUpload,canOverwrite;
+    bool canArchive,canUpload,canOverwrite;
     bool debug; ///< Verbose logging (-d/--debug)
     bool useXRealIP; ///< Use X-Real-IP header for client IP in logs (behind proxy)
     std::string softwareVersion;
@@ -93,8 +92,6 @@ private:
     void createCSRFTokenCookie();
     bool checkCSRFTokenOnPOST();
 
-    bool containOnlyAllowedChars(const std::string &str);
-
     std::string getFancySize(size_t  size);
 
     // Write a JSON envelope: { "ok": bool, "error": string, "data": ... }
@@ -115,7 +112,6 @@ private:
     Mantids30::Network::Protocol::HTTP::Status::Code action_delete();
     Mantids30::Network::Protocol::HTTP::Status::Code action_thumb();
     Mantids30::Network::Protocol::HTTP::Status::Code action_detail();
-    Mantids30::Network::Protocol::HTTP::Status::Code action_exec();
 
     webClientParams webClientParameters;
     std::chrono::steady_clock::time_point reqStart;

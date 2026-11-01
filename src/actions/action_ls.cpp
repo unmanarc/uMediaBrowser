@@ -51,7 +51,6 @@ Status::Code WebClientHdlr::action_ls()
     flags["can-upload"] = webClientParameters.canUpload;
     flags["can-overwrite"] = webClientParameters.canOverwrite;
     flags["can-archive"] = webClientParameters.canArchive;
-    flags["can-execute"] = webClientParameters.canExecute;
     flags["version"] = webClientParameters.softwareVersion;
     data["flags"] = flags;
 
@@ -103,7 +102,6 @@ Status::Code WebClientHdlr::action_ls()
         item["perms"] = chmodval;
         const fs::perms others = perms & fs::perms::others_all;
         item["warning"] = (others == (fs::perms::others_write | fs::perms::others_exec) || others == (fs::perms::others_read | fs::perms::others_write | fs::perms::others_exec));
-        item["executable"] = ((perms & fs::perms::owner_exec) != fs::perms::none);
 
         vec.push_back(item);
     }

@@ -48,17 +48,6 @@ public:
         globalArguments->softwareDescription = std::string(PROJECT_DESCRIPTION);
         globalArguments->addAuthor({"Aarón Mizrachi", "aaron@unmanarc.com"});
 
-        globalArguments->addCommandLineOption("Server Options",
-                                              'x',
-                                              "can-execute",
-#ifndef _WIN32
-                                              "Execute any eXecutable marked file and get the output, ATT: disable can-archive if you want to keep your script sources private",
-#else
-                                              "Execute any .exe/.bat file and get the output, ATT: disable can-archive if you want to keep your script sources private",
-#endif
-                                              "false",
-                                              Memory::Abstract::Var::Type::BOOL);
-
         globalArguments->addCommandLineOption("Server Options", 'g', "can-archive", "Allow to get server directories as tar.gz files (on-the-fly)", "false", Memory::Abstract::Var::Type::BOOL);
         globalArguments->addCommandLineOption("Server Options", 'u', "can-upload", "Allow file uploads", "false", Memory::Abstract::Var::Type::BOOL);
         globalArguments->addCommandLineOption("Server Options", 'o', "can-overwrite", "Allow overwrite on file uploads and/or delete files", "false", Memory::Abstract::Var::Type::BOOL);
@@ -140,7 +129,6 @@ public:
         listenAddress = globalArguments->getCommandLineOptionValue("laddr")->toString();
         webClientParameters.httpDocumentRootDir = globalArguments->getCommandLineOptionValue("rootdir")->toString();
         listenPort = static_cast<uint16_t>(std::stoul(globalArguments->getCommandLineOptionValue("lport")->toString()));
-        webClientParameters.canExecute = globalArguments->getCommandLineOptionBooleanValue("can-execute");
         webClientParameters.canArchive = globalArguments->getCommandLineOptionBooleanValue("can-archive");
         webClientParameters.canUpload = globalArguments->getCommandLineOptionBooleanValue("can-upload");
         webClientParameters.canOverwrite = globalArguments->getCommandLineOptionBooleanValue("can-overwrite");
@@ -236,11 +224,10 @@ public:
 
         log->log0(__func__, Logs::INFO, "Web Server Loaded @%s:%" PRIu16, listenAddress.c_str(), listenPort);
         log->log0(__func__, Logs::INFO, "Document root: %s", rp.c_str());
-        log->log0(__func__, Logs::INFO, "Features: can-upload=%d can-overwrite=%d can-archive=%d can-execute=%d",
+        log->log0(__func__, Logs::INFO, "Features: can-upload=%d can-overwrite=%d can-archive=%d",
                   webClientParameters.canUpload,
                   webClientParameters.canOverwrite,
-                  webClientParameters.canArchive,
-                  webClientParameters.canExecute);
+                  webClientParameters.canArchive);
         log->log0(__func__, Logs::INFO, "Auth: %s | Debug logging: %s",
                   webClientParameters.pass.empty() ? "disabled" : "basic",
                   webClientParameters.debug ? "enabled" : "disabled");
