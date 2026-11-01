@@ -1,14 +1,14 @@
-%define name uSimpleWebServer
+%define name uMediaBrowser
 %define version 1.1.6
 %define build_timestamp %{lua: print(os.date("%Y%m%d"))}
 
 Name:           %{name}
 Version:        %{version}
 Release:        %{build_timestamp}.git%{?dist}
-Summary:        Unmanarc Simple Web Server
+Summary:        Unmanarc's Media Browser
 License:        AGPL
-URL:            https://github.com/unmanarc/uSimpleWebServer
-Source0:        https://github.com/unmanarc/uSimpleWebServer/archive/master.tar.gz#/%{name}-%{version}-%{build_timestamp}.tar.gz
+URL:            https://github.com/unmanarc/uMediaBrowser
+Source0:        https://github.com/unmanarc/uMediaBrowser/archive/master.tar.gz#/%{name}-%{version}-%{build_timestamp}.tar.gz
 Group:          Applications/Internet
 
 %define cmake cmake
@@ -50,7 +50,7 @@ Requires:       openssl
 %endif
 
 %description
-This package contains a very efficient and simple web server that can be called from the command line
+This package contains a lightweight web file browser and media gallery that can be called from the command line
 
 %prep
 %autosetup -n %{name}-master
@@ -100,6 +100,6 @@ ln -s . s390x-redhat-linux-gnu
 
 %files
 %doc
-%{_bindir}/uSimpleWebServer
+%{_bindir}/uMediaBrowser
 
 %changelog

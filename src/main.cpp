@@ -23,13 +23,13 @@ using namespace Mantids30::Memory;
 using namespace Mantids30::Program;
 namespace fs = std::filesystem;
 
-class USimpleWebServer : public Mantids30::Program::Application
+class UMediaBrowser : public Mantids30::Program::Application
 {
 public:
     static std::shared_ptr<Mantids30::Memory::Containers::B_MEM> favicon;
     static time_t staticContentTime;
 
-    USimpleWebServer() { multiThreadedAcceptor = std::make_shared<Network::Sockets::Acceptors::MultiThreaded>(); }
+    UMediaBrowser() { multiThreadedAcceptor = std::make_shared<Network::Sockets::Acceptors::MultiThreaded>(); }
 
     void _shutdown() override { log->log0(__func__, Logs::INFO, "SIGTERM received."); }
 
@@ -272,10 +272,10 @@ private:
     std::shared_ptr<Network::Sockets::Acceptors::MultiThreaded> multiThreadedAcceptor;
 };
 
-void USimpleWebServer::_callbackOnConnect(void *obj, const std::shared_ptr<Network::Sockets::Socket_Stream> &s)
+void UMediaBrowser::_callbackOnConnect(void *obj, const std::shared_ptr<Network::Sockets::Socket_Stream> &s)
 {
     std::string tlsCN;
-    USimpleWebServer *webServer = (USimpleWebServer *) obj;
+    UMediaBrowser *webServer = (UMediaBrowser *) obj;
 
     bool isSecure = s->isSecure();
     if (isSecure)
@@ -313,31 +313,31 @@ void USimpleWebServer::_callbackOnConnect(void *obj, const std::shared_ptr<Netwo
     webHandler->parseObject(&err);
 }
 
-void USimpleWebServer::_callbackOnInitFailed(void *obj, const std::shared_ptr<Network::Sockets::Socket_Stream> &s)
+void UMediaBrowser::_callbackOnInitFailed(void *obj, const std::shared_ptr<Network::Sockets::Socket_Stream> &s)
 {
     char inetAddr[INET6_ADDRSTRLEN];
     s->getRemotePair(inetAddr);
-    ((USimpleWebServer *) obj)->log->log1("web", inetAddr, Logs::WARNING, "C/INIT-FAIL: protocol initialization failed (eg. bad TLS handshake)");
+    ((UMediaBrowser *) obj)->log->log1("web", inetAddr, Logs::WARNING, "C/INIT-FAIL: protocol initialization failed (eg. bad TLS handshake)");
 }
 
-void USimpleWebServer::_callbackOnTimeOut(void *obj, const std::shared_ptr<Network::Sockets::Socket_Stream> &s)
+void UMediaBrowser::_callbackOnTimeOut(void *obj, const std::shared_ptr<Network::Sockets::Socket_Stream> &s)
 {
     char inetAddr[INET6_ADDRSTRLEN];
     s->getRemotePair(inetAddr);
-    ((USimpleWebServer *) obj)->log->log1("web", inetAddr, Logs::WARNING, "C/TIMEOUT: no request received in time, all thread queues saturated, sending 503");
+    ((UMediaBrowser *) obj)->log->log1("web", inetAddr, Logs::WARNING, "C/TIMEOUT: no request received in time, all thread queues saturated, sending 503");
     s->writeString(HTML_503_RESPONSE);
 }
 
-const webClientParams &USimpleWebServer::getWebClientParameters() const
+const webClientParams &UMediaBrowser::getWebClientParameters() const
 {
     return webClientParameters;
 }
 
 int main(int argc, char *argv[])
 {
-    USimpleWebServer *main = new USimpleWebServer;
+    UMediaBrowser *main = new UMediaBrowser;
     return StartApplication(argc, argv, main);
 }
 
-std::shared_ptr<Mantids30::Memory::Containers::B_MEM> USimpleWebServer::favicon = nullptr;
-time_t USimpleWebServer::staticContentTime = 0;
+std::shared_ptr<Mantids30::Memory::Containers::B_MEM> UMediaBrowser::favicon = nullptr;
+time_t UMediaBrowser::staticContentTime = 0;

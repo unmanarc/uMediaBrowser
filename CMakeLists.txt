@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.12)
 include(GNUInstallDirs)
 
-set(APP_NAME "uSimpleWebServer3")
+set(APP_NAME "uMediaBrowser")
 set(SVERSION 3.0.0)
 
 project(${APP_NAME})
-project(${PROJECT_NAME} VERSION ${SVERSION} DESCRIPTION "Unmanarcs Simple Web Server 3")
+project(${PROJECT_NAME} VERSION ${SVERSION} DESCRIPTION "Unmanarc's Media Browser")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

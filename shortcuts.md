@@ -1,6 +1,6 @@
 # Keyboard Shortcuts Reference
 
-Reference for the keyboard shortcuts available in the **uSimpleWebServer** web
+Reference for the keyboard shortcuts available in the **uMediaBrowser** web
 file manager UI (PC / desktop mode). All shortcuts are client-side only (implemented
 in the HTML/JS served by the server — see `src/html_index_app.h`) and work when the
 browser viewport is in desktop layout (not the phone layout).

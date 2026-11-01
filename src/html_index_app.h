@@ -5,10 +5,10 @@
 #include <Mantids30/Helpers/encoders.h>
 
 // Build the HTML page with a custom title.
-// If appTitle is empty, defaults to "Unmanarc Simple Web Server 3".
+// If appTitle is empty, defaults to "Unmanarc's Media Browser".
 inline std::string buildHTMLApp(const std::string &appTitle)
 {
-    const std::string title = appTitle.empty() ? "Unmanarc Simple Web Server 3" : appTitle;
+    const std::string title = appTitle.empty() ? "Unmanarc's Media Browser" : appTitle;
     const std::string escaped = Mantids30::Helpers::Encoders::htmlEscape(title);
 
     static const std::string rawHTML = R"uSWAPP(
