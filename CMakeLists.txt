@@ -51,11 +51,7 @@ endif()
 ################################################################################
 # Dependencies:
 ################################################################################
-pkg_check_modules(JSONCPP REQUIRED jsoncpp)
-target_include_directories(${APP_NAME} PUBLIC ${JSONCPP_INCLUDE_DIRS})
-target_link_libraries(${APP_NAME} ${JSONCPP_LIBRARIES})
-
-find_package(Boost REQUIRED COMPONENTS regex thread)
+find_package(Boost REQUIRED COMPONENTS regex thread json)
 target_include_directories(${APP_NAME} PUBLIC ${Boost_INCLUDE_DIRS})
 target_link_libraries(${APP_NAME} ${Boost_LIBRARIES})
 
@@ -70,6 +66,7 @@ endif()
 set(Mantids30_LIBRARIES
     Mantids30_Protocol_HTTP
     Mantids30_Protocol_MIME
+    Mantids30_DataFormat_JSON
     Mantids30_Net_Sockets
     Mantids30_Threads
     Mantids30_Memory

@@ -16,6 +16,7 @@ namespace fs = std::filesystem;
 using namespace Mantids30;
 using namespace Mantids30::Network::Protocol;
 using namespace Mantids30::Network::Protocol::HTTP;
+using namespace Mantids30::Helpers::JSON;
 
 Status::Code WebClientHdlr::action_ls()
 {
@@ -26,8 +27,7 @@ Status::Code WebClientHdlr::action_ls()
     if (!resolveExistingPath(path, dirInfo) || !dirInfo.isDirectory)
     {
         logRpc(Mantids30::Program::Logs::WARNING, "R/LS-404: path='%s' not found or not a directory", path.c_str());
-        Json::Value d;
-        writeJSON(false, "Directory not found", d);
+        writeJSON(false, "Directory not found", boost::json::value{});
         return respond(HTTP::Status::Code::S_404_NOT_FOUND, clientRequest.getURI().c_str());
     }
 
@@ -42,21 +42,21 @@ Status::Code WebClientHdlr::action_ls()
             parent = p;
     }
 
-    Json::Value data;
+    boost::json::object data;
     data["path"] = rel;
     data["parent"] = parent;
     data["has_parent"] = (parent != "/");
 
-    Json::Value flags;
+    boost::json::object flags;
     flags["can-upload"] = webClientParameters.canUpload;
     flags["can-overwrite"] = webClientParameters.canOverwrite;
     flags["can-archive"] = webClientParameters.canArchive;
     flags["version"] = webClientParameters.softwareVersion;
-    data["flags"] = flags;
+    data["flags"] = std::move(flags);
 
     data["upload_here"] = !fs::exists(dirInfo.fullPath + ".dontupload");
 
-    Json::Value items(Json::arrayValue);
+    boost::json::value items = boost::json::array{};
 
     std::error_code ec;
     if (!fs::is_directory(dirInfo.fullPath, ec) || ec)
@@ -66,7 +66,7 @@ Status::Code WebClientHdlr::action_ls()
         return respond(HTTP::Status::Code::S_403_FORBIDDEN, clientRequest.getURI().c_str());
     }
 
-    std::vector<Json::Value> vec;
+    std::vector<boost::json::value> vec;
     for (auto it = fs::directory_iterator(dirInfo.fullPath, ec); !ec && it != fs::directory_iterator(); it.increment(ec))
     {
         const fs::directory_entry &entry = *it;
@@ -91,40 +91,41 @@ Status::Code WebClientHdlr::action_ls()
         char chmodval[16];
         snprintf(chmodval, sizeof(chmodval), "%o", static_cast<int>(static_cast<int>(perms) & static_cast<int>(fs::perms::all)));
 
-        Json::Value item;
+        boost::json::object item;
         item["name"] = name;
         item["type"] = isDir ? "dir" : "file";
-        item["size"] = (Json::Int64) rawStat.st_size;
+        item["size"] = static_cast<int64_t>(rawStat.st_size);
         item["size_fancy"] = isDir ? "" : getFancySize(static_cast<size_t>(rawStat.st_size));
-        item["mtime"] = (Json::Int64) rawStat.st_mtime;
-        item["uid"] = (Json::UInt) rawStat.st_uid;
-        item["gid"] = (Json::UInt) rawStat.st_gid;
+        item["mtime"] = static_cast<int64_t>(rawStat.st_mtime);
+        item["uid"] = static_cast<uint32_t>(rawStat.st_uid);
+        item["gid"] = static_cast<uint32_t>(rawStat.st_gid);
         item["perms"] = chmodval;
         const fs::perms others = perms & fs::perms::others_all;
         item["warning"] = (others == (fs::perms::others_write | fs::perms::others_exec) || others == (fs::perms::others_read | fs::perms::others_write | fs::perms::others_exec));
 
-        vec.push_back(item);
+        vec.push_back(std::move(item));
     }
 
     // Folders first, then case-insensitive name order.
     std::sort(vec.begin(),
               vec.end(),
-              [](const Json::Value &a, const Json::Value &b)
+              [](const boost::json::value &a, const boost::json::value &b)
               {
-                  const bool ad = a["type"].asString() == "dir";
-                  const bool bd = b["type"].asString() == "dir";
+                  const bool ad = ASSTRING(a, "type", "") == "dir";
+                  const bool bd = ASSTRING(b, "type", "") == "dir";
                   if (ad != bd)
                       return ad; // dirs come first
-                  std::string an = a["name"].asString(), bn = b["name"].asString();
+                  std::string an = ASSTRING(a, "name", "");
+                  std::string bn = ASSTRING(b, "name", "");
                   std::transform(an.begin(), an.end(), an.begin(), ::tolower);
                   std::transform(bn.begin(), bn.end(), bn.begin(), ::tolower);
                   return an < bn;
               });
 
-    for (const Json::Value &v : vec)
-        items.append(v);
+    for (const boost::json::value &v : vec)
+        items.as_array().push_back(v);
 
-    data["items"] = items;
+    data["items"] = std::move(items);
 
     logRpc(Mantids30::Program::Logs::INFO, "R/LS: path='%s' -> %u items (dirs first)", rel.c_str(), (unsigned) vec.size());
     if (webClientParameters.debug && ec)

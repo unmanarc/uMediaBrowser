@@ -13,6 +13,7 @@ using namespace Mantids30;
 using namespace Mantids30::Network::Protocol;
 using namespace Mantids30::Network::Protocol::HTTP;
 using namespace Mantids30::Helpers;
+using namespace Mantids30::Helpers::JSON;
 
 namespace
 {
@@ -82,8 +83,7 @@ Status::Code WebClientHdlr::action_thumb()
     if (!resolveExistingPath(file, info) || info.isDirectory)
     {
         logRpc(Mantids30::Program::Logs::WARNING, "R/THUMB-404: file='%s' not found", file.c_str());
-        Json::Value d;
-        writeJSON(false, "File not found", d);
+        writeJSON(false, "File not found", boost::json::value{});
         return respond(HTTP::Status::Code::S_404_NOT_FOUND, clientRequest.getURI().c_str());
     }
 
@@ -184,12 +184,11 @@ Status::Code WebClientHdlr::action_thumb()
     if (!ok || out.empty())
     {
         logRpc(Mantids30::Program::Logs::WARNING, "R/THUMB-FAIL: file='%s' (%s)", info.relativePath.c_str(), errReason.c_str());
-        Json::Value d;
-        writeJSON(false, errReason, d);
+        writeJSON(false, errReason, boost::json::value{});
         return respond(HTTP::Status::Code::S_500_INTERNAL_SERVER_ERROR, clientRequest.getURI().c_str());
     }
 
-    Json::Value data;
+    boost::json::object data;
     data["mime"] = "image/jpeg";
     data["b64"] = Encoders::encodeToBase64(out);
 

@@ -12,6 +12,7 @@ using namespace Mantids30;
 using namespace Mantids30::Network::Protocol;
 using namespace Mantids30::Network::Protocol::HTTP;
 using namespace Mantids30::Helpers;
+using namespace Mantids30::Helpers::JSON;
 
 namespace {
 // Run a command capturing its stdout into `out`. Returns true if the process
@@ -43,12 +44,11 @@ Status::Code WebClientHdlr::action_detail()
     if (!resolveExistingPath(file, info))
     {
         logRpc(Mantids30::Program::Logs::WARNING, "R/DETAIL-404: file='%s' not found", file.c_str());
-        Json::Value d;
-        writeJSON(false, "File not found", d);
+        writeJSON(false, "File not found", boost::json::value{});
         return respond(HTTP::Status::Code::S_404_NOT_FOUND, clientRequest.getURI().c_str());
     }
 
-    Json::Value data;
+    boost::json::object data;
     data["type"] = info.isDirectory ? "dir" : "file";
 
     if (info.isDirectory)
@@ -107,12 +107,12 @@ Status::Code WebClientHdlr::action_detail()
     std::string exOut;
     if (runCapture("/usr/bin/exiftool", {"-json", "-s", info.fullPath}, exOut))
     {
-        Json::Value root;
-        Json::Reader reader;
-        if (reader.parse(exOut, root) && root.isArray() && !root.empty() && root[0].isObject())
+        boost::json::value root;
+        JSON::Reader reader;
+        if (reader.parse(exOut, root) && root.is_array() && !root.as_array().empty() && root.as_array().front().is_object())
         {
-            const Json::Value &obj = root[0];
-            Json::Value exif(Json::objectValue);
+            const boost::json::value &obj = root.as_array().front();
+            boost::json::object exif;
             static const char *keys[] = {"Make",
                                          "Model",
                                          "LensModel",
@@ -129,9 +129,9 @@ Status::Code WebClientHdlr::action_detail()
                                          "GPSLatitudeRef",
                                          "GPSLongitudeRef"};
             for (const char *k : keys)
-                if (obj.isMember(k))
-                    exif[k] = obj[k];
-            data["exif"] = exif;
+                if (hasMember(obj, k))
+                    exif[k] = detail::safeGet(obj, k);
+            data["exif"] = std::move(exif);
         }
     }
 

@@ -131,19 +131,16 @@ void WebClientHdlr::createCSRFTokenCookie()
     }
 }
 
-void WebClientHdlr::writeJSON(const bool ok, const std::string &error, const Json::Value &data)
+void WebClientHdlr::writeJSON(const bool ok, const std::string &error, const boost::json::value &data)
 {
     serverResponse.contentType = "application/json; charset=UTF-8";
 
-    Json::Value root;
-    root["ok"] = ok;
-    root["error"] = error;
-    root["data"] = data;
+    boost::json::value root = boost::json::object{};
+    root.as_object()["ok"] = ok;
+    root.as_object()["error"] = error;
+    root.as_object()["data"] = data;
 
-    Json::StreamWriterBuilder w;
-    w["indentation"] = "";
-    w["emitUTF8"] = true;
-    getResponseContentStreamableObject()->writeString(Json::writeString(w, root));
+    getResponseContentStreamableObject()->writeString(Mantids30::Helpers::JSON::toString(root));
 }
 
 bool WebClientHdlr::resolveExistingPath(const std::string &uriStylePath, LocalRequestedFileInfo &info)
@@ -212,8 +209,8 @@ Status::Code WebClientHdlr::onHTTPClientContentReceived()
     if (clientRequest.content.getContainerType() == Content::ContainerType::MIME && method == "POST" && act == "upload" && webClientParameters.canUpload)
     {
         logRpc(Logs::INFO, "R/UPLOAD: %s", webClientParameters.uploadOK ? "completed" : "incomplete (no part processed)");
-        Json::Value data;
-        data["uploaded"] = webClientParameters.uploadOK;
+        boost::json::value data;
+        Mantids30::Helpers::JSON::setMember(data, "uploaded", webClientParameters.uploadOK);
         writeJSON(webClientParameters.uploadOK, webClientParameters.uploadOK ? "" : "Upload not completed", data);
         return respond(HTTP::Status::Code::S_200_OK, clientRequest.getURI().c_str());
     }

@@ -125,8 +125,8 @@ Status::Code WebClientHdlr::action_upload()
 {
     logRpc(Mantids30::Program::Logs::INFO, "R/UPLOAD-DONE: dir=%s ok=%s", webClientParameters.uploadDirBase.c_str(),
            webClientParameters.uploadOK ? "yes" : "no");
-    Json::Value data;
-    data["uploaded"] = webClientParameters.uploadOK;
+    boost::json::value data;
+    Mantids30::Helpers::JSON::setMember(data, "uploaded", webClientParameters.uploadOK);
     writeJSON(webClientParameters.uploadOK, webClientParameters.uploadOK ? "" : "Upload not completed", data);
     return respond(HTTP::Status::Code::S_200_OK, clientRequest.getURI().c_str());
 }

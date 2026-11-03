@@ -10,13 +10,13 @@ namespace fs = std::filesystem;
 using namespace Mantids30;
 using namespace Mantids30::Network::Protocol;
 using namespace Mantids30::Network::Protocol::HTTP;
+using namespace Mantids30::Helpers::JSON;
 
 Status::Code WebClientHdlr::action_mkdir()
 {
     if (!webClientParameters.canUpload)
     {
-        Json::Value d;
-        writeJSON(false, "Folder creation is disabled", d);
+        writeJSON(false, "Folder creation is disabled", boost::json::value{});
         return respond(HTTP::Status::Code::S_403_FORBIDDEN, clientRequest.getURI().c_str());
     }
 
@@ -27,8 +27,7 @@ Status::Code WebClientHdlr::action_mkdir()
     if (name.empty() || ActionCommon::isReservedDotFile(name))
     {
         logRpc(Mantids30::Program::Logs::WARNING, "R/NEW-400: invalid folder name='%s'", name.c_str());
-        Json::Value d;
-        writeJSON(false, "Invalid folder name", d);
+        writeJSON(false, "Invalid folder name", boost::json::value{});
         return respond(HTTP::Status::Code::S_400_BAD_REQUEST, clientRequest.getURI().c_str());
     }
 
@@ -36,8 +35,7 @@ Status::Code WebClientHdlr::action_mkdir()
     if (!resolveNewChildPath(path, name, info))
     {
         logRpc(Mantids30::Program::Logs::WARNING, "R/NEW-404: parent path='%s' not found", path.c_str());
-        Json::Value d;
-        writeJSON(false, "Invalid parent path", d);
+        writeJSON(false, "Invalid parent path", boost::json::value{});
         return respond(HTTP::Status::Code::S_404_NOT_FOUND, clientRequest.getURI().c_str());
     }
 
@@ -45,12 +43,11 @@ Status::Code WebClientHdlr::action_mkdir()
     if (!fs::create_directory(info.fullPath, ec) || ec)
     {
         logRpc(Mantids30::Program::Logs::ERROR, "R/NEW-FAIL: '%s' (%s)", info.relativePath.c_str(), ec.message().c_str());
-        Json::Value d;
-        writeJSON(false, "Could not create folder", d);
+        writeJSON(false, "Could not create folder", boost::json::value{});
         return respond(HTTP::Status::Code::S_500_INTERNAL_SERVER_ERROR, clientRequest.getURI().c_str());
     }
 
-    Json::Value data;
+    boost::json::object data;
     data["path"] = info.relativePath;
     logRpc(Mantids30::Program::Logs::INFO, "R/NEW: dir='%s' created", info.relativePath.c_str());
     writeJSON(true, "", data);

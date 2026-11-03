@@ -10,6 +10,7 @@ namespace fs = std::filesystem;
 using namespace Mantids30;
 using namespace Mantids30::Network::Protocol;
 using namespace Mantids30::Network::Protocol::HTTP;
+using namespace Mantids30::Helpers::JSON;
 
 Status::Code WebClientHdlr::action_tree()
 {
@@ -20,14 +21,13 @@ Status::Code WebClientHdlr::action_tree()
     if (!resolveExistingPath(path, dirInfo) || !dirInfo.isDirectory)
     {
         logRpc(Mantids30::Program::Logs::WARNING, "R/TREE-404: path='%s' not found or not a directory", path.c_str());
-        Json::Value d;
-        writeJSON(false, "Directory not found", d);
+        writeJSON(false, "Directory not found", boost::json::value{});
         return respond(HTTP::Status::Code::S_404_NOT_FOUND, clientRequest.getURI().c_str());
     }
 
     const std::string rel = dirInfo.relativePath.empty() ? "/" : dirInfo.relativePath;
 
-    Json::Value nodes(Json::arrayValue);
+    boost::json::value nodes = boost::json::array{};
 
     std::error_code ec;
     for (auto it = fs::directory_iterator(dirInfo.fullPath, ec); !ec && it != fs::directory_iterator(); it.increment(ec))
@@ -57,18 +57,18 @@ Status::Code WebClientHdlr::action_tree()
             childRel += '/';
         childRel += name;
 
-        Json::Value node;
+        boost::json::object node;
         node["name"] = name;
         node["path"] = childRel;
         node["has_children"] = hasChildren;
-        nodes.append(node);
+        nodes.as_array().push_back(std::move(node));
     }
 
-    Json::Value data;
+    boost::json::object data;
     data["path"] = rel;
-    data["nodes"] = nodes;
+    data["nodes"] = std::move(nodes);
 
-    logRpc(Mantids30::Program::Logs::INFO, "R/TREE: path='%s' -> %u dir nodes", rel.c_str(), (unsigned) nodes.size());
+    logRpc(Mantids30::Program::Logs::INFO, "R/TREE: path='%s' -> %u dir nodes", rel.c_str(), (unsigned) nodes.as_array().size());
     writeJSON(true, "", data);
     return respond(HTTP::Status::Code::S_200_OK, clientRequest.getURI().c_str());
 }

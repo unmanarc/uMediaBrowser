@@ -4,7 +4,7 @@
 #include <Mantids30/Memory/b_mem.h>
 #include <Mantids30/Protocol_HTTP/httpv1_server.h>
 #include <Mantids30/Program_Logs/rpclog.h>
-#include <json/json.h>
+#include <Mantids30/DataFormat_JSON/json.h>
 
 #include <chrono>
 #include <string>
@@ -95,7 +95,7 @@ private:
     std::string getFancySize(size_t  size);
 
     // Write a JSON envelope: { "ok": bool, "error": string, "data": ... }
-    void writeJSON(const bool ok, const std::string &error, const Json::Value &data);
+    void writeJSON(const bool ok, const std::string &error, const boost::json::value &data);
 
     // Resolve an existing URI-style path (eg. "/a/b") against the document root.
     bool resolveExistingPath(const std::string &uriStylePath, LocalRequestedFileInfo &info);

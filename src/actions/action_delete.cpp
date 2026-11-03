@@ -11,13 +11,13 @@ namespace fs = std::filesystem;
 using namespace Mantids30;
 using namespace Mantids30::Network::Protocol;
 using namespace Mantids30::Network::Protocol::HTTP;
+using namespace Mantids30::Helpers::JSON;
 
 Status::Code WebClientHdlr::action_delete()
 {
     if (!webClientParameters.canOverwrite)
     {
-        Json::Value d;
-        writeJSON(false, "Delete is disabled", d);
+        writeJSON(false, "Delete is disabled", boost::json::value{});
         return respond(HTTP::Status::Code::S_403_FORBIDDEN, clientRequest.getURI().c_str());
     }
 
@@ -28,12 +28,11 @@ Status::Code WebClientHdlr::action_delete()
     if (names.empty())
     {
         logRpc(Mantids30::Program::Logs::WARNING, "R/DEL-400: no paths selected");
-        Json::Value d;
-        writeJSON(false, "No paths selected", d);
+        writeJSON(false, "No paths selected", boost::json::value{});
         return respond(HTTP::Status::Code::S_400_BAD_REQUEST, clientRequest.getURI().c_str());
     }
 
-    Json::Value deleted(Json::arrayValue);
+    boost::json::value deleted = boost::json::array{};
     std::string error;
 
     for (const std::string &f : names)
@@ -70,16 +69,16 @@ Status::Code WebClientHdlr::action_delete()
             break;
         }
 
-        deleted.append(rel);
+        deleted.as_array().push_back(boost::json::value(rel));
     }
 
-    Json::Value data;
-    data["deleted"] = deleted;
+    boost::json::object data;
+    data["deleted"] = std::move(deleted);
 
     if (error.empty())
-        logRpc(Mantids30::Program::Logs::INFO, "R/DEL: deleted %u path(s)", (unsigned) deleted.size());
+        logRpc(Mantids30::Program::Logs::INFO, "R/DEL: deleted %u path(s)", (unsigned) deleted.as_array().size());
     else
-        logRpc(Mantids30::Program::Logs::WARNING, "R/DEL-ERR: %s (deleted %u before failure)", error.c_str(), (unsigned) deleted.size());
+        logRpc(Mantids30::Program::Logs::WARNING, "R/DEL-ERR: %s (deleted %u before failure)", error.c_str(), (unsigned) deleted.as_array().size());
 
     writeJSON(error.empty(), error, data);
     return respond(error.empty() ? HTTP::Status::Code::S_200_OK : HTTP::Status::Code::S_500_INTERNAL_SERVER_ERROR, clientRequest.getURI().c_str());

@@ -16,6 +16,7 @@ using namespace Mantids30::Network::Protocol;
 using namespace Mantids30::Network::Protocol::HTTP;
 using namespace Mantids30::Memory::Streams;
 using namespace Mantids30::Helpers;
+using namespace Mantids30::Helpers::JSON;
 
 namespace
 {
@@ -71,8 +72,7 @@ Status::Code WebClientHdlr::action_archive()
 {
     if (!webClientParameters.canArchive)
     {
-        Json::Value d;
-        writeJSON(false, "Archive downloads are disabled", d);
+        writeJSON(false, "Archive downloads are disabled", boost::json::value{});
         return respond(HTTP::Status::Code::S_403_FORBIDDEN, clientRequest.getURI().c_str());
     }
 
@@ -86,8 +86,7 @@ Status::Code WebClientHdlr::action_archive()
     if (names.empty())
     {
         logRpc(Mantids30::Program::Logs::WARNING, "R/TAR-400: no files selected");
-        Json::Value d;
-        writeJSON(false, "No files selected", d);
+        writeJSON(false, "No files selected", boost::json::value{});
         return respond(HTTP::Status::Code::S_400_BAD_REQUEST, clientRequest.getURI().c_str());
     }
 
@@ -102,15 +101,13 @@ Status::Code WebClientHdlr::action_archive()
         if (!resolveExistingPath(f, info))
         {
             logRpc(Mantids30::Program::Logs::WARNING, "R/TAR-400: invalid path='%s'", f.c_str());
-            Json::Value d;
-            writeJSON(false, "Invalid path: " + f, d);
+            writeJSON(false, "Invalid path: " + f, boost::json::value{});
             return respond(HTTP::Status::Code::S_400_BAD_REQUEST, clientRequest.getURI().c_str());
         }
         if (info.relativePath == "/" || info.relativePath.empty())
         {
             logRpc(Mantids30::Program::Logs::WARNING, "R/TAR-400: refusing to archive document root");
-            Json::Value d;
-            writeJSON(false, "Document root cannot be archived", d);
+            writeJSON(false, "Document root cannot be archived", boost::json::value{});
             return respond(HTTP::Status::Code::S_400_BAD_REQUEST, clientRequest.getURI().c_str());
         }
 
