@@ -23,13 +23,19 @@ bool runCapture(const std::string &exe, const std::vector<std::string> &args, st
     if (!spawner.setExec(exe))
         return false;
     for (const std::string &a : args)
+    {
         spawner.addArgument(a);
+    }
     if (!spawner.spawnProcess(true, false))
+    {
         return false;
+    }
     char buf[8192];
     ssize_t n;
     while ((n = spawner.read(1, buf, sizeof(buf))) > 0)
+    {
         out.append(buf, static_cast<size_t>(n));
+    }
     spawner.waitUntilProcessEnds();
     return true;
 }
@@ -129,8 +135,12 @@ Status::Code WebClientHdlr::action_detail()
                                          "GPSLatitudeRef",
                                          "GPSLongitudeRef"};
             for (const char *k : keys)
-                if (hasMember(obj, k))
-                    exif[k] = detail::safeGet(obj, k);
+            {
+                if (HAS_MEMBER(obj, k))
+                {
+                    exif[k] = MEMBER_OR_NULL(obj, k);
+                }
+            }
             data["exif"] = std::move(exif);
         }
     }

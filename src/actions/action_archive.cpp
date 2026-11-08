@@ -43,11 +43,17 @@ namespace
             }
         }
         while (!out.empty() && (out.back() == '.' || out.back() == '-'))
+        {
             out.pop_back();
+        }
         if (out.size() > 80)
+        {
             out.resize(80);
+        }
         while (!out.empty() && (out.back() == '.' || out.back() == '-'))
+        {
             out.pop_back(); // trimming may have re-exposed a trailing dot
+        }
         return out;
     }
 
