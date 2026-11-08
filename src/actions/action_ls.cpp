@@ -1,11 +1,13 @@
 #include "../webclienthdlr.h"
 #include <Mantids30/Protocol_HTTP/rsp_status.h>
 
+#include <boost/algorithm/string/compare.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+
 #include <sys/stat.h>
 #include <unistd.h>
 
 #include <algorithm>
-#include <cctype>
 #include <cstdio>
 #include <filesystem>
 #include <string>
@@ -107,19 +109,23 @@ Status::Code WebClientHdlr::action_ls()
     }
 
     // Folders first, then case-insensitive name order.
-    std::sort(vec.begin(),
-              vec.end(),
+
+    std::sort(vec.begin(), vec.end(),
               [](const boost::json::value &a, const boost::json::value &b)
               {
                   const bool ad = ASSTRING(a, "type", "") == "dir";
                   const bool bd = ASSTRING(b, "type", "") == "dir";
+
                   if (ad != bd)
-                      return ad; // dirs come first
-                  std::string an = ASSTRING(a, "name", "");
-                  std::string bn = ASSTRING(b, "name", "");
-                  std::transform(an.begin(), an.end(), an.begin(), ::tolower);
-                  std::transform(bn.begin(), bn.end(), bn.begin(), ::tolower);
-                  return an < bn;
+                      return ad; // Directories first
+
+                  const std::string_view an = ASSTRING(a, "name", "");
+                  const std::string_view bn = ASSTRING(b, "name", "");
+
+                  return boost::algorithm::ilexicographical_compare(
+                      boost::make_iterator_range(an.begin(), an.end()),
+                      boost::make_iterator_range(bn.begin(), bn.end())
+                      );
               });
 
     for (const boost::json::value &v : vec)
