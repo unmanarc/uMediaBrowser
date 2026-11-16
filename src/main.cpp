@@ -1,12 +1,12 @@
-#include <Mantids30/Net_Sockets/socket_tcp.h>
-#include <Mantids30/Program_Logs/applog.h>
-#include <Mantids30/Program_Service/application.h>
+#include <Mantids30/Network/Sockets/socket_tcp.h>
+#include <Mantids30/Runtime/Logs/applog.h>
+#include <Mantids30/Runtime/Service/application.h>
 #ifdef WITH_SSL_SUPPORT
-#include <Mantids30/Net_Sockets/socket_tls.h>
+#include <Mantids30/Network/Sockets/socket_tls.h>
 #endif
-#include <Mantids30/Memory/a_bool.h>
-#include <Mantids30/Memory/a_uint16.h>
-#include <Mantids30/Net_Sockets/acceptor_multithreaded.h>
+#include <Mantids30/Core/Memory/a_bool.h>
+#include <Mantids30/Core/Memory/a_uint16.h>
+#include <Mantids30/Network/Sockets/acceptor_multithreaded.h>
 
 #include <filesystem>
 #include <fstream>
@@ -19,17 +19,21 @@
 #include "webclienthdlr.h"
 
 using namespace Mantids30;
-using namespace Mantids30::Memory;
-using namespace Mantids30::Program;
+using namespace Mantids30::Runtime;
+using namespace Mantids30::Core::Memory;
+using namespace Mantids30::Core::Memory::Abstract;
+using namespace Mantids30::Runtime;
+using namespace Mantids30::Runtime::Logs;
+using namespace Mantids30::Runtime::Service;
 namespace fs = std::filesystem;
 
-class UMediaBrowser : public Mantids30::Program::Application
+class UMediaBrowser : public Mantids30::Runtime::Service::Application
 {
 public:
-    static std::shared_ptr<Mantids30::Memory::Containers::B_MEM> favicon;
+    static std::shared_ptr<Mantids30::Core::Memory::Containers::B_MEM> favicon;
     static time_t staticContentTime;
 
-    UMediaBrowser() { multiThreadedAcceptor = std::make_shared<Network::Sockets::Acceptors::MultiThreaded>(); }
+    UMediaBrowser() { multiThreadedAcceptor = std::make_shared<Mantids30::Network::Sockets::Acceptors::MultiThreaded>(); }
 
     void _shutdown() override { log->log0(__func__, Logs::INFO, "SIGTERM received."); }
 
@@ -37,7 +41,7 @@ public:
     {
         globalArguments->setInifiniteWaitAtEnd(true);
 
-        favicon = std::make_shared<Mantids30::Memory::Containers::B_MEM>(favicon2_ico, favicon2_ico_len);
+        favicon = std::make_shared<Mantids30::Core::Memory::Containers::B_MEM>(favicon2_ico, favicon2_ico_len);
         staticContentTime = time(nullptr);
 
         /////////////////////////
@@ -48,28 +52,28 @@ public:
         globalArguments->softwareDescription = std::string(PROJECT_DESCRIPTION);
         globalArguments->addAuthor({"Aarón Mizrachi", "aaron@unmanarc.com"});
 
-        globalArguments->addCommandLineOption("Server Options", 'g', "can-archive", "Allow to get server directories as tar.gz files (on-the-fly)", "false", Memory::Abstract::Var::Type::BOOL);
-        globalArguments->addCommandLineOption("Server Options", 'u', "can-upload", "Allow file uploads", "false", Memory::Abstract::Var::Type::BOOL);
-        globalArguments->addCommandLineOption("Server Options", 'o', "can-overwrite", "Allow overwrite on file uploads and/or delete files", "false", Memory::Abstract::Var::Type::BOOL);
+        globalArguments->addCommandLineOption("Server Options", 'g', "can-archive", "Allow to get server directories as tar.gz files (on-the-fly)", "false", Abstract::Var::Type::BOOL);
+        globalArguments->addCommandLineOption("Server Options", 'u', "can-upload", "Allow file uploads", "false", Abstract::Var::Type::BOOL);
+        globalArguments->addCommandLineOption("Server Options", 'o', "can-overwrite", "Allow overwrite on file uploads and/or delete files", "false", Abstract::Var::Type::BOOL);
 
-        globalArguments->addCommandLineOption("HTTP Options", 'r', "rootdir", "HTTP Document Root Directory", ".", Memory::Abstract::Var::Type::STRING);
-        globalArguments->addCommandLineOption("HTTP Options", 'l', "lport", "Local HTTP Port", "8001", Memory::Abstract::Var::Type::UINT16);
-        globalArguments->addCommandLineOption("HTTP Options", '4', "ipv4", "Use only IPv4", "true", Memory::Abstract::Var::Type::BOOL);
-        globalArguments->addCommandLineOption("HTTP Options", 'a', "laddr", "Listen Address", "*", Memory::Abstract::Var::Type::STRING);
-        globalArguments->addCommandLineOption("HTTP Options", 0, "title", "Application title shown in browser tab and toolbar", "", Memory::Abstract::Var::Type::STRING);
-        globalArguments->addCommandLineOption("HTTP Options", 't', "threads", "Max Concurrent Connections (Threads)", "1024", Memory::Abstract::Var::Type::UINT16);
-        globalArguments->addCommandLineOption("HTTP Options", 0, "use-x-real-ip", "Use X-Real-IP header for client IP in logs instead of the source IP (behind proxy)", "false", Memory::Abstract::Var::Type::BOOL);
+        globalArguments->addCommandLineOption("HTTP Options", 'r', "rootdir", "HTTP Document Root Directory", ".", Abstract::Var::Type::STRING);
+        globalArguments->addCommandLineOption("HTTP Options", 'l', "lport", "Local HTTP Port", "8001", Abstract::Var::Type::UINT16);
+        globalArguments->addCommandLineOption("HTTP Options", '4', "ipv4", "Use only IPv4", "true", Abstract::Var::Type::BOOL);
+        globalArguments->addCommandLineOption("HTTP Options", 'a', "laddr", "Listen Address", "*", Abstract::Var::Type::STRING);
+        globalArguments->addCommandLineOption("HTTP Options", 0, "title", "Application title shown in browser tab and toolbar", "", Abstract::Var::Type::STRING);
+        globalArguments->addCommandLineOption("HTTP Options", 't', "threads", "Max Concurrent Connections (Threads)", "1024", Abstract::Var::Type::UINT16);
+        globalArguments->addCommandLineOption("HTTP Options", 0, "use-x-real-ip", "Use X-Real-IP header for client IP in logs instead of the source IP (behind proxy)", "false", Abstract::Var::Type::BOOL);
 
-        globalArguments->addCommandLineOption("HTTP Security", 'p', "passfile", "HTTP User/Pass File", "", Memory::Abstract::Var::Type::STRING);
+        globalArguments->addCommandLineOption("HTTP Security", 'p', "passfile", "HTTP User/Pass File", "", Abstract::Var::Type::STRING);
 
-        globalArguments->addCommandLineOption("Other Options", 's', "sys", "Journalctl Log Mode (don't print colors or dates)", "false", Memory::Abstract::Var::Type::BOOL);
-        globalArguments->addCommandLineOption("Other Options", 'd', "debug", "Verbose debug logging (full URIs, per-entry detail)", "false", Memory::Abstract::Var::Type::BOOL);
+        globalArguments->addCommandLineOption("Other Options", 's', "sys", "Journalctl Log Mode (don't print colors or dates)", "false", Abstract::Var::Type::BOOL);
+        globalArguments->addCommandLineOption("Other Options", 'd', "debug", "Verbose debug logging (full URIs, per-entry detail)", "false", Abstract::Var::Type::BOOL);
 
 #ifdef WITH_SSL_SUPPORT
         globalArguments
-            ->addCommandLineOption("TLS Options", 0, "cafile", "X.509 Certificate Authority Path (if not defined, then without client authentication)", "", Memory::Abstract::Var::Type::STRING);
-        globalArguments->addCommandLineOption("TLS Options", 'k', "keyfile", "X.509 Private Key Path (if not defined, then HTTP)", "", Memory::Abstract::Var::Type::STRING);
-        globalArguments->addCommandLineOption("TLS Options", 'c', "certfile", "X.509 Certificate Path (if not defined, then HTTP)", "", Memory::Abstract::Var::Type::STRING);
+            ->addCommandLineOption("TLS Options", 0, "cafile", "X.509 Certificate Authority Path (if not defined, then without client authentication)", "", Abstract::Var::Type::STRING);
+        globalArguments->addCommandLineOption("TLS Options", 'k', "keyfile", "X.509 Private Key Path (if not defined, then HTTP)", "", Abstract::Var::Type::STRING);
+        globalArguments->addCommandLineOption("TLS Options", 'c', "certfile", "X.509 Certificate Path (if not defined, then HTTP)", "", Abstract::Var::Type::STRING);
 #endif
     }
 
@@ -145,10 +149,10 @@ public:
         std::string cafile = globalArguments->getCommandLineOptionValue("cafile")->toString();
 #endif
 
-        auto socketTCP = std::make_shared<Network::Sockets::Socket_TCP>();
-        std::shared_ptr<Network::Sockets::Socket_Stream> acceptorSocket = socketTCP;
+        auto socketTCP = std::make_shared<Mantids30::Network::Sockets::Socket_TCP>();
+        std::shared_ptr<Mantids30::Network::Sockets::Socket_Stream> acceptorSocket = socketTCP;
 #ifdef WITH_SSL_SUPPORT
-        auto socketTLS = std::make_shared<Network::Sockets::Socket_TLS>();
+        auto socketTLS = std::make_shared<Mantids30::Network::Sockets::Socket_TLS>();
 
         // Set the SO default security level:
         socketTLS->tlsKeys.setSecurityLevel(-1);
@@ -241,25 +245,25 @@ private:
     /**
      * callback when connection is fully established
      */
-    static void _callbackOnConnect(void *, const std::shared_ptr<Network::Sockets::Socket_Stream> &);
+    static void _callbackOnConnect(void *, const std::shared_ptr<Mantids30::Network::Sockets::Socket_Stream> &);
     /**
      * callback when protocol initialization failed (like bad X.509 on TLS)
      */
-    static void _callbackOnInitFailed(void *, const std::shared_ptr<Network::Sockets::Socket_Stream> &);
+    static void _callbackOnInitFailed(void *, const std::shared_ptr<Mantids30::Network::Sockets::Socket_Stream> &);
     /**
      * callback when timed out (all the thread queues are saturated) (this callback is called from acceptor thread, you should use it very quick)
      */
-    static void _callbackOnTimeOut(void *, const std::shared_ptr<Network::Sockets::Socket_Stream> &);
+    static void _callbackOnTimeOut(void *, const std::shared_ptr<Mantids30::Network::Sockets::Socket_Stream> &);
 
     std::string listenAddress;
     uint16_t listenPort;
     Logs::AppLog *log;
     webClientParams webClientParameters;
 
-    std::shared_ptr<Network::Sockets::Acceptors::MultiThreaded> multiThreadedAcceptor;
+    std::shared_ptr<Mantids30::Network::Sockets::Acceptors::MultiThreaded> multiThreadedAcceptor;
 };
 
-void UMediaBrowser::_callbackOnConnect(void *obj, const std::shared_ptr<Network::Sockets::Socket_Stream> &s)
+void UMediaBrowser::_callbackOnConnect(void *obj, const std::shared_ptr<Mantids30::Network::Sockets::Socket_Stream> &s)
 {
     std::string tlsCN;
     UMediaBrowser *webServer = (UMediaBrowser *) obj;
@@ -276,7 +280,7 @@ void UMediaBrowser::_callbackOnConnect(void *obj, const std::shared_ptr<Network:
     // Prepare the web services handler.
     auto webHandler = std::make_shared<WebClientHdlr>(s);
 
-    Mantids30::Network::Protocol::HTTP::HTTPv1_Server::StaticContentElement faviconElement;
+    Mantids30::Protocol::HTTP::HTTPv1_Server::StaticContentElement faviconElement;
     faviconElement.setData(favicon, staticContentTime);
 
     // Mantids30 resolves in-memory static content without the leading slash.
@@ -296,18 +300,18 @@ void UMediaBrowser::_callbackOnConnect(void *obj, const std::shared_ptr<Network:
     webHandler->setWebClientParameters(webServer->getWebClientParameters());
 
     // Handle the Web Client here:
-    Memory::Streams::Parser::ParseResult err;
+    Core::Memory::Streams::Parser::ParseResult err;
     webHandler->parseObject(&err);
 }
 
-void UMediaBrowser::_callbackOnInitFailed(void *obj, const std::shared_ptr<Network::Sockets::Socket_Stream> &s)
+void UMediaBrowser::_callbackOnInitFailed(void *obj, const std::shared_ptr<Mantids30::Network::Sockets::Socket_Stream> &s)
 {
     char inetAddr[INET6_ADDRSTRLEN];
     s->getRemotePair(inetAddr);
     ((UMediaBrowser *) obj)->log->log1("web", inetAddr, Logs::WARNING, "C/INIT-FAIL: protocol initialization failed (eg. bad TLS handshake)");
 }
 
-void UMediaBrowser::_callbackOnTimeOut(void *obj, const std::shared_ptr<Network::Sockets::Socket_Stream> &s)
+void UMediaBrowser::_callbackOnTimeOut(void *obj, const std::shared_ptr<Mantids30::Network::Sockets::Socket_Stream> &s)
 {
     char inetAddr[INET6_ADDRSTRLEN];
     s->getRemotePair(inetAddr);
@@ -326,5 +330,5 @@ int main(int argc, char *argv[])
     return StartApplication(argc, argv, main);
 }
 
-std::shared_ptr<Mantids30::Memory::Containers::B_MEM> UMediaBrowser::favicon = nullptr;
+std::shared_ptr<Mantids30::Core::Memory::Containers::B_MEM> UMediaBrowser::favicon = nullptr;
 time_t UMediaBrowser::staticContentTime = 0;

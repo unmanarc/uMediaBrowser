@@ -1,6 +1,6 @@
 #include "../webclienthdlr.h"
 #include "action_common.h"
-#include <Mantids30/Protocol_HTTP/rsp_status.h>
+#include <Mantids30/Protocol/HTTP/rsp_status.h>
 
 #include <filesystem>
 #include <string>
@@ -8,9 +8,9 @@
 namespace fs = std::filesystem;
 
 using namespace Mantids30;
-using namespace Mantids30::Network::Protocol;
-using namespace Mantids30::Network::Protocol::HTTP;
-using namespace Mantids30::Helpers::JSON;
+using namespace Mantids30::Protocol;
+using namespace Mantids30::Protocol::HTTP;
+using namespace Mantids30::DataFormat::JSON;
 
 Status::Code WebClientHdlr::action_tree()
 {
@@ -20,7 +20,7 @@ Status::Code WebClientHdlr::action_tree()
     LocalRequestedFileInfo dirInfo;
     if (!resolveExistingPath(path, dirInfo) || !dirInfo.isDirectory)
     {
-        logRpc(Mantids30::Program::Logs::WARNING, "R/TREE-404: path='%s' not found or not a directory", path.c_str());
+        logRpc(Mantids30::Runtime::Logs::WARNING, "R/TREE-404: path='%s' not found or not a directory", path.c_str());
         writeJSON(false, "Directory not found", boost::json::value{});
         return respond(HTTP::Status::Code::S_404_NOT_FOUND, clientRequest.getURI().c_str());
     }
@@ -68,7 +68,7 @@ Status::Code WebClientHdlr::action_tree()
     data["path"] = rel;
     data["nodes"] = std::move(nodes);
 
-    logRpc(Mantids30::Program::Logs::INFO, "R/TREE: path='%s' -> %u dir nodes", rel.c_str(), (unsigned) nodes.as_array().size());
+    logRpc(Mantids30::Runtime::Logs::INFO, "R/TREE: path='%s' -> %u dir nodes", rel.c_str(), (unsigned) nodes.as_array().size());
     writeJSON(true, "", data);
     return respond(HTTP::Status::Code::S_200_OK, clientRequest.getURI().c_str());
 }

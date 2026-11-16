@@ -1,6 +1,6 @@
 #include "../webclienthdlr.h"
-#include <Mantids30/Helpers/appexec.h>
-#include <Mantids30/Protocol_HTTP/rsp_status.h>
+#include <Mantids30/Core/Helpers/appexec.h>
+#include <Mantids30/Protocol/HTTP/rsp_status.h>
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
@@ -9,10 +9,11 @@
 #include <vector>
 
 using namespace Mantids30;
-using namespace Mantids30::Network::Protocol;
-using namespace Mantids30::Network::Protocol::HTTP;
-using namespace Mantids30::Helpers;
-using namespace Mantids30::Helpers::JSON;
+using namespace Mantids30::Runtime;
+using namespace Mantids30::Protocol;
+using namespace Mantids30::Protocol::HTTP;
+using namespace Mantids30::Core::Helpers;
+using namespace Mantids30::DataFormat::JSON;
 
 namespace {
 // Run a command capturing its stdout into `out`. Returns true if the process
@@ -49,7 +50,7 @@ Status::Code WebClientHdlr::action_detail()
     LocalRequestedFileInfo info;
     if (!resolveExistingPath(file, info))
     {
-        logRpc(Mantids30::Program::Logs::WARNING, "R/DETAIL-404: file='%s' not found", file.c_str());
+        logRpc(Mantids30::Runtime::Logs::WARNING, "R/DETAIL-404: file='%s' not found", file.c_str());
         writeJSON(false, "File not found", boost::json::value{});
         return respond(HTTP::Status::Code::S_404_NOT_FOUND, clientRequest.getURI().c_str());
     }
@@ -59,12 +60,12 @@ Status::Code WebClientHdlr::action_detail()
 
     if (info.isDirectory)
     {
-        logRpc(Mantids30::Program::Logs::INFO, "R/DETAIL: path='%s' (dir)", info.relativePath.c_str());
+        logRpc(Mantids30::Runtime::Logs::INFO, "R/DETAIL: path='%s' (dir)", info.relativePath.c_str());
         writeJSON(true, "", data);
         return respond(HTTP::Status::Code::S_200_OK, clientRequest.getURI().c_str());
     }
 
-    logRpc(Mantids30::Program::Logs::INFO, "R/DETAIL: file='%s' (image metadata via ImageMagick/exiftool)", info.relativePath.c_str());
+    logRpc(Mantids30::Runtime::Logs::INFO, "R/DETAIL: file='%s' (image metadata via ImageMagick/exiftool)", info.relativePath.c_str());
 
     // Image dimensions + format via ImageMagick identify.
     std::string idOut;
@@ -114,7 +115,7 @@ Status::Code WebClientHdlr::action_detail()
     if (runCapture("/usr/bin/exiftool", {"-json", "-s", info.fullPath}, exOut))
     {
         boost::json::value root;
-        JSON::Reader reader;
+        Reader reader;
         if (reader.parse(exOut, root) && root.is_array() && !root.as_array().empty() && root.as_array().front().is_object())
         {
             const boost::json::value &obj = root.as_array().front();

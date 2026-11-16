@@ -1,5 +1,5 @@
 #include "../webclienthdlr.h"
-#include <Mantids30/Protocol_HTTP/rsp_status.h>
+#include <Mantids30/Protocol/HTTP/rsp_status.h>
 
 #include <boost/algorithm/string/compare.hpp>
 #include <boost/algorithm/string/predicate.hpp>
@@ -16,9 +16,9 @@
 namespace fs = std::filesystem;
 
 using namespace Mantids30;
-using namespace Mantids30::Network::Protocol;
-using namespace Mantids30::Network::Protocol::HTTP;
-using namespace Mantids30::Helpers::JSON;
+using namespace Mantids30::Protocol;
+using namespace Mantids30::Protocol::HTTP;
+using namespace Mantids30::DataFormat::JSON;
 
 Status::Code WebClientHdlr::action_ls()
 {
@@ -28,7 +28,7 @@ Status::Code WebClientHdlr::action_ls()
     LocalRequestedFileInfo dirInfo;
     if (!resolveExistingPath(path, dirInfo) || !dirInfo.isDirectory)
     {
-        logRpc(Mantids30::Program::Logs::WARNING, "R/LS-404: path='%s' not found or not a directory", path.c_str());
+        logRpc(Mantids30::Runtime::Logs::WARNING, "R/LS-404: path='%s' not found or not a directory", path.c_str());
         writeJSON(false, "Directory not found", boost::json::value{});
         return respond(HTTP::Status::Code::S_404_NOT_FOUND, clientRequest.getURI().c_str());
     }
@@ -63,7 +63,7 @@ Status::Code WebClientHdlr::action_ls()
     std::error_code ec;
     if (!fs::is_directory(dirInfo.fullPath, ec) || ec)
     {
-        logRpc(Mantids30::Program::Logs::WARNING, "R/LS-403: path='%s' not accessible (%s)", path.c_str(), ec.message().c_str());
+        logRpc(Mantids30::Runtime::Logs::WARNING, "R/LS-403: path='%s' not accessible (%s)", path.c_str(), ec.message().c_str());
         writeJSON(false, "Folder not accessible", data);
         return respond(HTTP::Status::Code::S_403_FORBIDDEN, clientRequest.getURI().c_str());
     }
@@ -133,9 +133,9 @@ Status::Code WebClientHdlr::action_ls()
 
     data["items"] = std::move(items);
 
-    logRpc(Mantids30::Program::Logs::INFO, "R/LS: path='%s' -> %u items (dirs first)", rel.c_str(), (unsigned) vec.size());
+    logRpc(Mantids30::Runtime::Logs::INFO, "R/LS: path='%s' -> %u items (dirs first)", rel.c_str(), (unsigned) vec.size());
     if (webClientParameters.debug && ec)
-        logRpc(Mantids30::Program::Logs::DEBUG, "R/LS-DIRERR: path='%s' %s", path.c_str(), ec.message().c_str());
+        logRpc(Mantids30::Runtime::Logs::DEBUG, "R/LS-DIRERR: path='%s' %s", path.c_str(), ec.message().c_str());
 
     writeJSON(true, "", data);
     return respond(HTTP::Status::Code::S_200_OK, clientRequest.getURI().c_str());

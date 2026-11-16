@@ -2,14 +2,14 @@
 
 #include <string>
 #include <boost/algorithm/string/replace.hpp>
-#include <Mantids30/Helpers/encoders.h>
+#include <Mantids30/Core/Helpers/encoders.h>
 
 // Build the HTML page with a custom title.
 // If appTitle is empty, defaults to "Unmanarc's Media Browser".
 inline std::string buildHTMLApp(const std::string &appTitle)
 {
     const std::string title = appTitle.empty() ? "Unmanarc's Media Browser" : appTitle;
-    const std::string escaped = Mantids30::Helpers::Encoders::htmlEscape(title);
+    const std::string escaped = Mantids30::Core::Helpers::Encoders::htmlEscape(title);
 
     static const std::string rawHTML = R"uSWAPP(
 <!DOCTYPE html>

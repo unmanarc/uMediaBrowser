@@ -1,9 +1,9 @@
 #include "../webclienthdlr.h"
 #include "action_common.h"
-#include <Mantids30/Helpers/appexec.h>
-#include <Mantids30/Memory/streamable_process.h>
-#include <Mantids30/Program_Logs/loglevels.h>
-#include <Mantids30/Protocol_HTTP/rsp_status.h>
+#include <Mantids30/Core/Helpers/appexec.h>
+#include <Mantids30/Core/Memory/streamable_process.h>
+#include <Mantids30/Runtime/Logs/loglevels.h>
+#include <Mantids30/Protocol/HTTP/rsp_status.h>
 
 #include <filesystem>
 #include <string>
@@ -12,11 +12,12 @@
 namespace fs = std::filesystem;
 
 using namespace Mantids30;
-using namespace Mantids30::Network::Protocol;
-using namespace Mantids30::Network::Protocol::HTTP;
-using namespace Mantids30::Memory::Streams;
-using namespace Mantids30::Helpers;
-using namespace Mantids30::Helpers::JSON;
+using namespace Mantids30::Runtime;
+using namespace Mantids30::Protocol;
+using namespace Mantids30::Protocol::HTTP;
+using namespace Mantids30::Core::Memory::Streams;
+using namespace Mantids30::Core::Helpers;
+using namespace Mantids30::DataFormat::JSON;
 
 namespace
 {
@@ -91,7 +92,7 @@ Status::Code WebClientHdlr::action_archive()
     std::vector<std::string> names = ActionCommon::splitComma(filesParam);
     if (names.empty())
     {
-        logRpc(Mantids30::Program::Logs::WARNING, "R/TAR-400: no files selected");
+        logRpc(Mantids30::Runtime::Logs::WARNING, "R/TAR-400: no files selected");
         writeJSON(false, "No files selected", boost::json::value{});
         return respond(HTTP::Status::Code::S_400_BAD_REQUEST, clientRequest.getURI().c_str());
     }
@@ -106,13 +107,13 @@ Status::Code WebClientHdlr::action_archive()
         LocalRequestedFileInfo info;
         if (!resolveExistingPath(f, info))
         {
-            logRpc(Mantids30::Program::Logs::WARNING, "R/TAR-400: invalid path='%s'", f.c_str());
+            logRpc(Mantids30::Runtime::Logs::WARNING, "R/TAR-400: invalid path='%s'", f.c_str());
             writeJSON(false, "Invalid path: " + f, boost::json::value{});
             return respond(HTTP::Status::Code::S_400_BAD_REQUEST, clientRequest.getURI().c_str());
         }
         if (info.relativePath == "/" || info.relativePath.empty())
         {
-            logRpc(Mantids30::Program::Logs::WARNING, "R/TAR-400: refusing to archive document root");
+            logRpc(Mantids30::Runtime::Logs::WARNING, "R/TAR-400: refusing to archive document root");
             writeJSON(false, "Document root cannot be archived", boost::json::value{});
             return respond(HTTP::Status::Code::S_400_BAD_REQUEST, clientRequest.getURI().c_str());
         }
@@ -132,7 +133,7 @@ Status::Code WebClientHdlr::action_archive()
         bases.push_back(base);
     }
 
-    Helpers::AppSpawn *spawner = new Helpers::AppSpawn();
+    AppSpawn *spawner = new AppSpawn();
     std::string ext = "tar.gz";
 
     if (fmt == "zip")
@@ -200,11 +201,11 @@ Status::Code WebClientHdlr::action_archive()
     {
         auto streamableP = std::make_shared<StreamableProcess>(spawner);
         serverResponse.setContentDataStreamer(streamableP);
-        logRpc(Mantids30::Program::Logs::INFO, "R/TAR: %u file(s) -> %s (fmt=%s)", (unsigned) bases.size(), downloadName.c_str(), fmt.c_str());
+        logRpc(Mantids30::Runtime::Logs::INFO, "R/TAR: %u file(s) -> %s (fmt=%s)", (unsigned) bases.size(), downloadName.c_str(), fmt.c_str());
     }
     else
     {
-        logRpc(Mantids30::Program::Logs::WARNING, "R/TAR-FAIL: could not spawn %s for %u file(s)", fmt.c_str(), (unsigned) bases.size());
+        logRpc(Mantids30::Runtime::Logs::WARNING, "R/TAR-FAIL: could not spawn %s for %u file(s)", fmt.c_str(), (unsigned) bases.size());
         delete spawner;
     }
 

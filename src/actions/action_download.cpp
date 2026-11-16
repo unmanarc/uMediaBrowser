@@ -1,17 +1,17 @@
 #include "../html_errors.h"
 #include "../webclienthdlr.h"
 #include "action_common.h"
-#include <Mantids30/Memory/b_mmap.h>
-#include <Mantids30/Protocol_HTTP/rsp_status.h>
+#include <Mantids30/Core/Memory/b_mmap.h>
+#include <Mantids30/Protocol/HTTP/rsp_status.h>
 
 #include <boost/algorithm/string/replace.hpp>
 
 #include <string>
 
 using namespace Mantids30;
-using namespace Mantids30::Network::Protocol;
-using namespace Mantids30::Network::Protocol::HTTP;
-using namespace Mantids30::Memory::Containers;
+using namespace Mantids30::Protocol;
+using namespace Mantids30::Protocol::HTTP;
+using namespace Mantids30::Core::Memory::Containers;
 
 Status::Code WebClientHdlr::action_download()
 {
@@ -22,7 +22,7 @@ Status::Code WebClientHdlr::action_download()
     LocalRequestedFileInfo info;
     if (!resolveExistingPath(file, info) || info.isDirectory)
     {
-        logRpc(Mantids30::Program::Logs::WARNING, "R/DL-404: file='%s' not found", file.c_str());
+        logRpc(Mantids30::Runtime::Logs::WARNING, "R/DL-404: file='%s' not found", file.c_str());
         getResponseContentStreamableObject()->writeString(HTML_404);
         return respond(HTTP::Status::Code::S_404_NOT_FOUND, clientRequest.getURI().c_str());
     }
@@ -31,12 +31,12 @@ Status::Code WebClientHdlr::action_download()
     if (!mmap->referenceFile(info.fullPath, true, false))
     {
         // Fallback: serve as plain text error (binary file not readable).
-        logRpc(Mantids30::Program::Logs::ERROR, "R/DL-FAIL: file='%s' mmap failed (unreadable?)", info.fullPath.c_str());
+        logRpc(Mantids30::Runtime::Logs::ERROR, "R/DL-FAIL: file='%s' mmap failed (unreadable?)", info.fullPath.c_str());
         getResponseContentStreamableObject()->writeString(HTML_404);
         return respond(HTTP::Status::Code::S_404_NOT_FOUND, clientRequest.getURI().c_str());
     }
 
-    logRpc(Mantids30::Program::Logs::INFO, "R/DL: file='%s' %s%s",
+    logRpc(Mantids30::Runtime::Logs::INFO, "R/DL: file='%s' %s%s",
            info.relativePath.c_str(),
            getFancySize(mmap->size()).c_str(),
            asAttachment ? " [attachment]" : "");

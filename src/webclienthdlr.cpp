@@ -1,9 +1,9 @@
 #include "webclienthdlr.h"
 #include "html_errors.h"
 #include "html_index_app.h"
-#include <Mantids30/Helpers/random.h>
-#include <Mantids30/Program_Logs/loglevels.h>
-#include <Mantids30/Protocol_HTTP/rsp_status.h>
+#include <Mantids30/Core/Helpers/random.h>
+#include <Mantids30/Runtime/Logs/loglevels.h>
+#include <Mantids30/Protocol/HTTP/rsp_status.h>
 #include <boost/algorithm/string/trim.hpp>
 
 #include <stdarg.h>
@@ -14,11 +14,14 @@
 #include <string>
 
 using namespace Mantids30;
-using namespace Mantids30::Network::Protocol;
-using namespace Mantids30::Network::Protocol::HTTP;
-using namespace Mantids30::Network::Protocol::MIME;
-using namespace Mantids30::Memory::Streams;
-using namespace Mantids30::Program;
+using namespace Mantids30::Runtime;
+using namespace Mantids30::Protocol;
+using namespace Mantids30::Protocol::HTTP;
+using namespace Mantids30::Protocol::MIME;
+using namespace Mantids30::Core::Memory::Streams;
+using namespace Mantids30::Core::Helpers;
+using namespace Mantids30::Runtime::Logs;
+using namespace Mantids30::DataFormat::JSON;
 
 // Forward declaration of the upload MIME callback (defined in action_upload.cpp).
 void cbFileTransferMIMEHeaderReady(void *obj, const std::string &partName, const std::shared_ptr<MIME::MIME_PartMessage> &partMessage);
@@ -90,7 +93,7 @@ bool WebClientHdlr::onHTTPClientHeadersReceived()
     return true;
 }
 
-Mantids30::Network::Protocol::HTTP::Status::Code WebClientHdlr::respond(Mantids30::Network::Protocol::HTTP::Status::Code ret, const std::string &uri)
+Mantids30::Protocol::HTTP::Status::Code WebClientHdlr::respond(Mantids30::Protocol::HTTP::Status::Code ret, const std::string &uri)
 {
     const long long elapsedMs = requestElapsedMs();
     const bool ok = (ret == HTTP::Status::Code::S_200_OK);
@@ -121,7 +124,7 @@ void WebClientHdlr::createCSRFTokenCookie()
     if (clientRequest.requestLine.getHTTPMethod() == "GET")
     {
         Headers::Cookie val;
-        val.value = Helpers::Random::createRandomString(32);
+        val.value = Core::Helpers::Random::createRandomString(32);
         val.secure = clientRequest.networkClientInfo.isSecure;
         val.httpOnly = false;
         val.path = "/";
@@ -140,7 +143,7 @@ void WebClientHdlr::writeJSON(const bool ok, const std::string &error, const boo
     root.as_object()["error"] = error;
     root.as_object()["data"] = data;
 
-    getResponseContentStreamableObject()->writeString(Mantids30::Helpers::JSON::toString(root));
+    getResponseContentStreamableObject()->writeString(Mantids30::DataFormat::JSON::toString(root));
 }
 
 bool WebClientHdlr::resolveExistingPath(const std::string &uriStylePath, LocalRequestedFileInfo &info)
@@ -210,7 +213,7 @@ Status::Code WebClientHdlr::onHTTPClientContentReceived()
     {
         logRpc(Logs::INFO, "R/UPLOAD: %s", webClientParameters.uploadOK ? "completed" : "incomplete (no part processed)");
         boost::json::value data;
-        Mantids30::Helpers::JSON::setMember(data, "uploaded", webClientParameters.uploadOK);
+        Mantids30::DataFormat::JSON::setMember(data, "uploaded", webClientParameters.uploadOK);
         writeJSON(webClientParameters.uploadOK, webClientParameters.uploadOK ? "" : "Upload not completed", data);
         return respond(HTTP::Status::Code::S_200_OK, clientRequest.getURI().c_str());
     }

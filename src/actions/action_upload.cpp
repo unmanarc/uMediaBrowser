@@ -1,7 +1,7 @@
 #include "../webclienthdlr.h"
-#include <Mantids30/Memory/streamable_file.h>
-#include <Mantids30/Program_Logs/loglevels.h>
-#include <Mantids30/Protocol_HTTP/rsp_status.h>
+#include <Mantids30/Core/Memory/streamable_file.h>
+#include <Mantids30/Runtime/Logs/loglevels.h>
+#include <Mantids30/Protocol/HTTP/rsp_status.h>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/trim.hpp>
@@ -14,11 +14,12 @@
 namespace fs = std::filesystem;
 
 using namespace Mantids30;
-using namespace Mantids30::Network::Protocol;
-using namespace Mantids30::Network::Protocol::HTTP;
-using namespace Mantids30::Network::Protocol::MIME;
-using namespace Mantids30::Memory::Streams;
-using namespace Mantids30::Program;
+using namespace Mantids30::Runtime;
+using namespace Mantids30::Protocol;
+using namespace Mantids30::Protocol::HTTP;
+using namespace Mantids30::Protocol::MIME;
+using namespace Mantids30::Core::Memory::Streams;
+using namespace Mantids30::DataFormat::JSON;
 
 
 void cbFileTransferMIMEHeaderReady(void *obj, const std::string &partName, const std::shared_ptr<MIME::MIME_PartMessage> &partMessage)
@@ -123,10 +124,10 @@ void cbFileTransferMIMEHeaderReady(void *obj, const std::string &partName, const
 
 Status::Code WebClientHdlr::action_upload()
 {
-    logRpc(Mantids30::Program::Logs::INFO, "R/UPLOAD-DONE: dir=%s ok=%s", webClientParameters.uploadDirBase.c_str(),
+    logRpc(Mantids30::Runtime::Logs::INFO, "R/UPLOAD-DONE: dir=%s ok=%s", webClientParameters.uploadDirBase.c_str(),
            webClientParameters.uploadOK ? "yes" : "no");
     boost::json::value data;
-    Mantids30::Helpers::JSON::setMember(data, "uploaded", webClientParameters.uploadOK);
+    Mantids30::DataFormat::JSON::setMember(data, "uploaded", webClientParameters.uploadOK);
     writeJSON(webClientParameters.uploadOK, webClientParameters.uploadOK ? "" : "Upload not completed", data);
     return respond(HTTP::Status::Code::S_200_OK, clientRequest.getURI().c_str());
 }

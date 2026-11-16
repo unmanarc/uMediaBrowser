@@ -67,12 +67,12 @@ set(Mantids30_LIBRARIES
     Mantids30_Protocol_HTTP
     Mantids30_Protocol_MIME
     Mantids30_DataFormat_JSON
-    Mantids30_Net_Sockets
-    Mantids30_Threads
-    Mantids30_Memory
-    Mantids30_Program_Service
-    Mantids30_Program_Logs
-    Mantids30_Helpers
+    Mantids30_Network_Sockets
+    Mantids30_Core_Threads
+    Mantids30_Core_Memory
+    Mantids30_Runtime_Service
+    Mantids30_Runtime_Logs
+    Mantids30_Core_Helpers
 )
 
 foreach(LIBRARY ${Mantids30_LIBRARIES})

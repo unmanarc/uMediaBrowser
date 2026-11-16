@@ -1,6 +1,6 @@
 #include "../webclienthdlr.h"
 #include "action_common.h"
-#include <Mantids30/Protocol_HTTP/rsp_status.h>
+#include <Mantids30/Protocol/HTTP/rsp_status.h>
 
 #include <filesystem>
 #include <string>
@@ -8,9 +8,9 @@
 namespace fs = std::filesystem;
 
 using namespace Mantids30;
-using namespace Mantids30::Network::Protocol;
-using namespace Mantids30::Network::Protocol::HTTP;
-using namespace Mantids30::Helpers::JSON;
+using namespace Mantids30::Protocol;
+using namespace Mantids30::Protocol::HTTP;
+using namespace Mantids30::DataFormat::JSON;
 
 Status::Code WebClientHdlr::action_mkdir()
 {
@@ -26,7 +26,7 @@ Status::Code WebClientHdlr::action_mkdir()
 
     if (name.empty() || ActionCommon::isReservedDotFile(name))
     {
-        logRpc(Mantids30::Program::Logs::WARNING, "R/NEW-400: invalid folder name='%s'", name.c_str());
+        logRpc(Mantids30::Runtime::Logs::WARNING, "R/NEW-400: invalid folder name='%s'", name.c_str());
         writeJSON(false, "Invalid folder name", boost::json::value{});
         return respond(HTTP::Status::Code::S_400_BAD_REQUEST, clientRequest.getURI().c_str());
     }
@@ -34,7 +34,7 @@ Status::Code WebClientHdlr::action_mkdir()
     LocalRequestedFileInfo info;
     if (!resolveNewChildPath(path, name, info))
     {
-        logRpc(Mantids30::Program::Logs::WARNING, "R/NEW-404: parent path='%s' not found", path.c_str());
+        logRpc(Mantids30::Runtime::Logs::WARNING, "R/NEW-404: parent path='%s' not found", path.c_str());
         writeJSON(false, "Invalid parent path", boost::json::value{});
         return respond(HTTP::Status::Code::S_404_NOT_FOUND, clientRequest.getURI().c_str());
     }
@@ -42,14 +42,14 @@ Status::Code WebClientHdlr::action_mkdir()
     std::error_code ec;
     if (!fs::create_directory(info.fullPath, ec) || ec)
     {
-        logRpc(Mantids30::Program::Logs::ERROR, "R/NEW-FAIL: '%s' (%s)", info.relativePath.c_str(), ec.message().c_str());
+        logRpc(Mantids30::Runtime::Logs::ERROR, "R/NEW-FAIL: '%s' (%s)", info.relativePath.c_str(), ec.message().c_str());
         writeJSON(false, "Could not create folder", boost::json::value{});
         return respond(HTTP::Status::Code::S_500_INTERNAL_SERVER_ERROR, clientRequest.getURI().c_str());
     }
 
     boost::json::object data;
     data["path"] = info.relativePath;
-    logRpc(Mantids30::Program::Logs::INFO, "R/NEW: dir='%s' created", info.relativePath.c_str());
+    logRpc(Mantids30::Runtime::Logs::INFO, "R/NEW: dir='%s' created", info.relativePath.c_str());
     writeJSON(true, "", data);
     return respond(HTTP::Status::Code::S_200_OK, clientRequest.getURI().c_str());
 }

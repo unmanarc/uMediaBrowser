@@ -1,7 +1,7 @@
 #include "../webclienthdlr.h"
-#include <Mantids30/Helpers/appexec.h>
-#include <Mantids30/Helpers/encoders.h>
-#include <Mantids30/Protocol_HTTP/rsp_status.h>
+#include <Mantids30/Core/Helpers/appexec.h>
+#include <Mantids30/Core/Helpers/encoders.h>
+#include <Mantids30/Protocol/HTTP/rsp_status.h>
 
 #include <string>
 #include <vector>
@@ -10,10 +10,10 @@
 #include <unistd.h>
 
 using namespace Mantids30;
-using namespace Mantids30::Network::Protocol;
-using namespace Mantids30::Network::Protocol::HTTP;
-using namespace Mantids30::Helpers;
-using namespace Mantids30::Helpers::JSON;
+using namespace Mantids30::Protocol;
+using namespace Mantids30::Protocol::HTTP;
+using namespace Mantids30::Core::Helpers;
+using namespace Mantids30::DataFormat::JSON;
 
 namespace
 {
@@ -82,7 +82,7 @@ Status::Code WebClientHdlr::action_thumb()
     LocalRequestedFileInfo info;
     if (!resolveExistingPath(file, info) || info.isDirectory)
     {
-        logRpc(Mantids30::Program::Logs::WARNING, "R/THUMB-404: file='%s' not found", file.c_str());
+        logRpc(Mantids30::Runtime::Logs::WARNING, "R/THUMB-404: file='%s' not found", file.c_str());
         writeJSON(false, "File not found", boost::json::value{});
         return respond(HTTP::Status::Code::S_404_NOT_FOUND, clientRequest.getURI().c_str());
     }
@@ -183,7 +183,7 @@ Status::Code WebClientHdlr::action_thumb()
 
     if (!ok || out.empty())
     {
-        logRpc(Mantids30::Program::Logs::WARNING, "R/THUMB-FAIL: file='%s' (%s)", info.relativePath.c_str(), errReason.c_str());
+        logRpc(Mantids30::Runtime::Logs::WARNING, "R/THUMB-FAIL: file='%s' (%s)", info.relativePath.c_str(), errReason.c_str());
         writeJSON(false, errReason, boost::json::value{});
         return respond(HTTP::Status::Code::S_500_INTERNAL_SERVER_ERROR, clientRequest.getURI().c_str());
     }
@@ -193,7 +193,7 @@ Status::Code WebClientHdlr::action_thumb()
     data["b64"] = Encoders::encodeToBase64(out);
 
     const char *kindName = (kind == ThumbKind::RAW) ? "raw" : ((kind == ThumbKind::VIDEO) ? "video" : "image");
-    logRpc(Mantids30::Program::Logs::INFO, "R/THUMB: file='%s' s=%d kind=%s -> %zu bytes jpeg",
+    logRpc(Mantids30::Runtime::Logs::INFO, "R/THUMB: file='%s' s=%d kind=%s -> %zu bytes jpeg",
            info.relativePath.c_str(),
            size,
            kindName,
